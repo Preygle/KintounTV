@@ -1,0 +1,34 @@
+{
+  "name": "kintountv",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Ad-free anime streaming for Windows and Android with an in-app player, intro skipping and cross-device sync.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Preygle/KintounTV.git"
+  },
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "start": "node server.mjs",
+    "typecheck": "tsc --noEmit",
+    "desktop:build": "node desktop/build.mjs",
+    "desktop:install": "node desktop/build.mjs --install",
+    "android:build": "node android/build.mjs",
+    "release": "node scripts/release.mjs"
+  },
+  "dependencies": {
+    "hls.js": "1.5.17",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-router-dom": "6.26.2"
+  },
+  "devDependencies": {
+    "@types/react": "18.3.11",
+    "@types/react-dom": "18.3.0",
+    "@vitejs/plugin-react": "4.3.2",
+    "typescript": "5.6.2",
+    "vite": "5.4.8"
+  }
+}

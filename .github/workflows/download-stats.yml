@@ -1,0 +1,32 @@
+name: Download stats
+
+# Records how often each release file was downloaded, on the `stats` branch:
+# DOWNLOADS.md (per release and platform), history.csv (one row per day) and the README badges.
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: download-stats
+
+jobs:
+  record:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Record download counts
+        run: node .github/scripts/download-stats.mjs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}

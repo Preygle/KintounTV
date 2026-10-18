@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: desktop/go.mod
+          cache-dependency-path: desktop/go.sum
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build desktop app (typecheck, web bundle, KintounTV.exe)
+        run: npm run desktop:build
+
+      - name: Vet and test desktop app
+        working-directory: desktop
+        run: |
+          go vet ./...
+          go test ./...
+
+      - name: Build Android app (KintounTV.apk, throwaway signing key)
+        run: npm run android:build

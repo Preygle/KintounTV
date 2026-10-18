@@ -1,0 +1,10 @@
+*.apk
+.env.local
+android/build
+desktop/*.syso
+desktop/bin
+desktop/web
+dist
+node_modules
+desktop/winres/winres.gen.json
+release
