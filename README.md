@@ -8,9 +8,9 @@
 cross-device sync.**
 
 [![Latest release](https://img.shields.io/github/v/release/Preygle/KintounTV?label=release&color=7c5cff)](https://github.com/Preygle/KintounTV/releases/latest)
-[![Windows downloads](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FPreygle%2FKintounTV%2Fstats%2Fbadges%2Fwindows.json&cacheSeconds=3600)](https://github.com/Preygle/KintounTV/blob/stats/DOWNLOADS.md)
-[![Android downloads](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FPreygle%2FKintounTV%2Fstats%2Fbadges%2Fandroid.json&cacheSeconds=3600)](https://github.com/Preygle/KintounTV/blob/stats/DOWNLOADS.md)
-[![Total downloads](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FPreygle%2FKintounTV%2Fstats%2Fbadges%2Ftotal.json&cacheSeconds=3600)](https://github.com/Preygle/KintounTV/blob/stats/DOWNLOADS.md)
+[![Windows downloads](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FPreygle%2FKintounTV%2Fstats%2Fbadges%2Fwindows.json)](https://github.com/Preygle/KintounTV/blob/stats/DOWNLOADS.md)
+[![Android downloads](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FPreygle%2FKintounTV%2Fstats%2Fbadges%2Fandroid.json)](https://github.com/Preygle/KintounTV/blob/stats/DOWNLOADS.md)
+[![Total downloads](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FPreygle%2FKintounTV%2Fstats%2Fbadges%2Ftotal.json)](https://github.com/Preygle/KintounTV/blob/stats/DOWNLOADS.md)
 [![CI](https://github.com/Preygle/KintounTV/actions/workflows/ci.yml/badge.svg)](https://github.com/Preygle/KintounTV/actions/workflows/ci.yml)
 
 [**Download for Windows**](https://github.com/Preygle/KintounTV/releases/latest/download/KintounTV.exe)
