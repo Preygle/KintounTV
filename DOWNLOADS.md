@@ -19,7 +19,7 @@ by the [Download stats workflow](https://github.com/Preygle/KintounTV/actions/wo
 
 ## Last 30 days (cumulative)
 
-| date | windows | android | total |
+| Date | Windows | Android | Total |
 | --- | ---: | ---: | ---: |
 | 2026-10-18 | 0 | 0 | 0 |
 
