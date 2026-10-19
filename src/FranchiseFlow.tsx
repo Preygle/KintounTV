@@ -3,7 +3,8 @@
 // they belong to.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { watchApi, type PostDetail } from "./api";
+import type { PostDetail } from "./api";
+import { useEpisodeCount } from "./catalog";
 import { crawlFranchise, isSeries, layoutFranchise, type Extra, type FranchiseNode, type Step } from "./franchise";
 import { useProgress } from "./progress";
 
@@ -34,50 +35,6 @@ function franchiseOf(post: PostDetail): Promise<Map<number, FranchiseNode>> {
   graphs.unshift(entry);
   graphs.length = Math.min(graphs.length, 8);
   return entry.nodes;
-}
-
-// Episode counts come from the streaming source, fetched for tiles as they scroll into view.
-const episodeCounts = new Map<number, number>();
-let fetching = 0;
-const waiting: (() => void)[] = [];
-async function limited<T>(task: () => Promise<T>): Promise<T> {
-  while (fetching >= 3) await new Promise<void>((resolve) => waiting.push(resolve));
-  fetching++;
-  try {
-    return await task();
-  } finally {
-    fetching--;
-    waiting.shift()?.();
-  }
-}
-
-function useEpisodeCount(node: FranchiseNode, ref: React.RefObject<HTMLElement>): number | null {
-  const wanted = node.loaded && node.type !== "Movie";
-  const [count, setCount] = useState(() => episodeCounts.get(node.id) ?? null);
-  useEffect(() => {
-    const el = ref.current;
-    if (!wanted || episodeCounts.has(node.id) || !el) return;
-    let live = true;
-    const io = new IntersectionObserver(
-      (entries) => {
-        if (!entries[0].isIntersecting) return;
-        io.disconnect();
-        limited(() => watchApi.episodes(node.id))
-          .then((list) => {
-            if (list.length) episodeCounts.set(node.id, list.length);
-            if (live && list.length) setCount(list.length);
-          })
-          .catch(() => {});
-      },
-      { rootMargin: "200px" },
-    );
-    io.observe(el);
-    return () => {
-      live = false;
-      io.disconnect();
-    };
-  }, [node.id, wanted, ref]);
-  return count;
 }
 
 function formatClass(node: FranchiseNode): string {
@@ -126,7 +83,7 @@ function StatusChip({ status }: { status: string | null }) {
 
 function MainTile({ node, current }: { node: FranchiseNode; current: boolean }) {
   const ref = useRef<HTMLAnchorElement>(null);
-  const episodes = useEpisodeCount(node, ref);
+  const episodes = useEpisodeCount(node.id, ref, node.loaded && node.type !== "Movie");
   const resume = useProgress().last[node.id];
   return (
     <Link ref={ref} to={`/post/${node.id}`} className={`flow-tile${current ? " current" : ""}`} aria-current={current ? "page" : undefined}>
@@ -147,7 +104,7 @@ function MainTile({ node, current }: { node: FranchiseNode; current: boolean }) 
 function ExtraTile({ extra, current, bases }: { extra: Extra; current: boolean; bases: string[] }) {
   const { node } = extra;
   const ref = useRef<HTMLAnchorElement>(null);
-  const episodes = useEpisodeCount(node, ref);
+  const episodes = useEpisodeCount(node.id, ref, node.loaded && node.type !== "Movie");
   const label = LABELS[extra.label] ?? extra.label;
   const shown = shortTitle(node.title, extra.via ? [extra.via.title, ...bases] : bases);
   return (

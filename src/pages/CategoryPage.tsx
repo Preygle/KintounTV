@@ -1,23 +1,6 @@
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { api } from "../api";
-import { PagedGrid } from "../components";
-import { usePaged } from "../hooks";
-import { BackIcon } from "../icons";
+import { Navigate, useParams } from "react-router-dom";
 
+// Old links (/category/:id) open the category on the Categories page.
 export default function CategoryPage() {
-  const id = Number(useParams().id);
-  const title = useSearchParams()[0].get("title") ?? "Category";
-  const navigate = useNavigate();
-  const paged = usePaged((page) => api.category(id, page), [id]);
-  return (
-    <>
-      <div className="page-title with-back">
-        <button className="icon-btn" onClick={() => navigate(-1)} aria-label="Back">
-          <BackIcon />
-        </button>
-        <h1>{title}</h1>
-      </div>
-      <PagedGrid {...paged} />
-    </>
-  );
+  return <Navigate to={`/categories?c=${Number(useParams().id)}`} replace />;
 }

@@ -123,3 +123,30 @@ export const CheckIcon = () => (
     <path d="m5 12 5 5 9-10" />
   </svg>
 );
+export const BellIcon = () => (
+  <svg {...base}>
+    <path d="M6 9a6 6 0 0 1 12 0c0 6 2.5 7.5 2.5 7.5h-17S6 15 6 9" />
+    <path d="M10 20a2 2 0 0 0 4 0" />
+  </svg>
+);
+export const CalendarIcon = () => (
+  <svg {...base}>
+    <rect x="3" y="5" width="18" height="16" rx="2" />
+    <path d="M3 10h18M8 3v4M16 3v4" />
+  </svg>
+);
+export const FlameIcon = () => (
+  <svg {...base} fill="currentColor" stroke="none">
+    <path d="M12.5 2c.9 3.6-1.3 5.6-3 7.6C8 11.3 6 13.2 6 16a6 6 0 0 0 12 0c0-2.6-1.3-4.6-2.6-6 .1 1.9-.6 3.3-1.9 3.8.7-3.6-.1-7.9-1-11.8Z" />
+  </svg>
+);
+export const StarIcon = () => (
+  <svg {...base} fill="currentColor" stroke="none">
+    <path d="m12 2.8 2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17.2l-5.6 3 1.1-6.3-4.6-4.4 6.3-.9z" />
+  </svg>
+);
+export const TrashIcon = () => (
+  <svg {...base}>
+    <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
+  </svg>
+);

@@ -67,6 +67,7 @@
 
 .flow-col.current .flow-num {
   background: var(--accent);
+  color: var(--accent-text);
 }
 
 .flow-col:not(:last-child) .flow-marker::after {
@@ -76,7 +77,7 @@
   right: calc(-1 * var(--flow-gap) + 8px);
   top: 13px;
   height: 2px;
-  background: linear-gradient(90deg, var(--accent), rgb(124 92 255 / 0.45));
+  background: linear-gradient(90deg, var(--accent), rgb(245 166 35 / 0.4));
 }
 
 .flow-col:not(:last-child) .flow-marker::before {
@@ -86,8 +87,8 @@
   top: 9px;
   width: 8px;
   height: 8px;
-  border-top: 2px solid rgb(124 92 255 / 0.8);
-  border-right: 2px solid rgb(124 92 255 / 0.8);
+  border-top: 2px solid rgb(245 166 35 / 0.85);
+  border-right: 2px solid rgb(245 166 35 / 0.85);
   transform: rotate(45deg);
 }
 
@@ -170,16 +171,17 @@
 }
 
 .fmt.tv {
-  background: #7c5cff;
+  background: var(--accent);
+  color: var(--accent-text);
 }
 
 .fmt.ona {
-  background: #3b8cff;
+  background: #9b7bff;
 }
 
 .fmt.movie {
-  background: #f5a524;
-  color: #1c1300;
+  background: #4c9dff;
+  color: #04121f;
 }
 
 .fmt.ova {
@@ -231,12 +233,14 @@
   padding: 3px 8px;
   border-radius: 6px;
   background: var(--accent);
+  color: var(--accent-text);
   font-size: 11px;
   font-weight: 800;
 }
 
 .flow-here.resume {
   background: rgb(0 0 0 / 0.75);
+  color: var(--text);
 }
 
 /* Extras branching off a step */
@@ -303,7 +307,7 @@
   font-weight: 800;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: #a893ff;
+  color: var(--accent);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -448,7 +452,7 @@
     bottom: -22px;
     width: 2px;
     height: auto;
-    background: linear-gradient(180deg, var(--accent), rgb(124 92 255 / 0.45));
+    background: linear-gradient(180deg, var(--accent), rgb(245 166 35 / 0.4));
   }
 
   .flow:not(.solo) .flow-col:not(:last-child) .flow-marker::before {

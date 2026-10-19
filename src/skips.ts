@@ -12,11 +12,14 @@ export interface SkipSegment {
   exact: boolean; // safe to auto-skip
 }
 
-export interface SkipLookup {
+export interface TitleLookup {
   postId: number;
   title: string;
   type?: string | null;
   premiered?: string | null;
+}
+
+export interface SkipLookup extends TitleLookup {
   episode: number; // 1-based within this title (AniLab numbers sequels continuously)
 }
 
@@ -35,7 +38,9 @@ const FORMATS: Record<string, string[]> = {
   "tv special": ["SPECIAL", "TV_SHORT"],
 };
 
-type MalCache = Record<string, { mal: number; at: number }>;
+// banner: AniList's wide artwork (home hero, card fallbacks); missing in entries cached before it was kept.
+type MalCache = Record<string, { mal: number; banner?: string | null; at: number }>;
+type Match = { mal: number; banner: string | null };
 
 function loadMalCache(): MalCache {
   try {
@@ -46,7 +51,7 @@ function loadMalCache(): MalCache {
 }
 
 const malCache = loadMalCache();
-const malPending = new Map<number, Promise<number>>();
+const malPending = new Map<number, Promise<Match>>();
 const skipCache = new Map<string, Promise<SkipSegment[]>>();
 
 const norm = (s: string | null | undefined) => (s ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -57,10 +62,11 @@ interface AniListMedia {
   seasonYear: number | null;
   title: { romaji: string | null; english: string | null };
   synonyms: string[] | null;
+  bannerImage: string | null;
 }
 
-async function searchMal(lookup: SkipLookup): Promise<number> {
-  const query = `query($s:String){Page(perPage:8){media(search:$s,type:ANIME){idMal format seasonYear title{romaji english} synonyms}}}`;
+async function searchAniList(lookup: TitleLookup): Promise<Match> {
+  const query = `query($s:String){Page(perPage:8){media(search:$s,type:ANIME){idMal format seasonYear title{romaji english} synonyms bannerImage}}}`;
   const res = await fetch("https://graphql.anilist.co", {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
@@ -70,7 +76,7 @@ async function searchMal(lookup: SkipLookup): Promise<number> {
   const media = ((await res.json()) as { data?: { Page?: { media?: AniListMedia[] } } }).data?.Page?.media ?? [];
   const year = Number(lookup.premiered?.match(/\d{4}/)?.[0]) || null;
   const formats = FORMATS[(lookup.type ?? "").toLowerCase().trim()] ?? [];
-  let best = 0;
+  let best: Match = { mal: 0, banner: null };
   let bestScore = 0;
   media.forEach((m, i) => {
     if (!m.idMal) return;
@@ -80,31 +86,48 @@ async function searchMal(lookup: SkipLookup): Promise<number> {
     if ([m.title.english, m.title.romaji, ...(m.synonyms ?? [])].map(norm).includes(norm(lookup.title))) score += 4;
     if (score > bestScore) {
       bestScore = score;
-      best = m.idMal;
+      best = { mal: m.idMal, banner: m.bannerImage };
     }
   });
-  return bestScore >= 4 ? best : 0;
+  return bestScore >= 4 ? best : { mal: 0, banner: null };
 }
 
-function malIdFor(lookup: SkipLookup): Promise<number> {
+function matchFor(lookup: TitleLookup): Promise<Match> {
   const cached = malCache[lookup.postId];
-  if (cached && Date.now() - cached.at < (cached.mal ? HIT_TTL : MISS_TTL)) return Promise.resolve(cached.mal);
+  if (cached && "banner" in cached && Date.now() - cached.at < (cached.mal ? HIT_TTL : MISS_TTL)) {
+    return Promise.resolve({ mal: cached.mal, banner: cached.banner ?? null });
+  }
   let pending = malPending.get(lookup.postId);
   if (!pending) {
-    pending = searchMal(lookup)
-      .then((mal) => {
-        malCache[lookup.postId] = { mal, at: Date.now() };
+    pending = searchAniList(lookup)
+      .then((match) => {
+        malCache[lookup.postId] = { ...match, at: Date.now() };
         try {
           localStorage.setItem(MAL_KEY, JSON.stringify(malCache));
         } catch {
           // ignore
         }
-        return mal;
+        return match;
       })
       .finally(() => malPending.delete(lookup.postId));
     malPending.set(lookup.postId, pending);
   }
   return pending;
+}
+
+const malIdFor = (lookup: TitleLookup) => matchFor(lookup).then((m) => m.mal);
+
+/** Cached banner without a lookup (undefined: not looked up yet). */
+export function cachedBanner(postId: number): string | null | undefined {
+  const cached = malCache[postId];
+  return cached && "banner" in cached ? (cached.banner ?? null) : undefined;
+}
+
+/** Wide banner artwork for a title (AniList), or null when there is none or no confident match. */
+export function bannerFor(lookup: TitleLookup): Promise<string | null> {
+  return matchFor(lookup)
+    .then((m) => m.banner)
+    .catch(() => null);
 }
 
 interface AniSkipResult {
