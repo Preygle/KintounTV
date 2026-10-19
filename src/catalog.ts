@@ -170,12 +170,12 @@ function whenVisible(el: Element, cb: () => void): () => void {
 }
 
 /** Details for a card, loaded once `ref` is near the viewport (immediately without a ref). */
-export function useMeta(id: number, ref?: React.RefObject<Element>): PostMeta | null {
+export function useMeta(id: number, ref?: React.RefObject<Element>, enabled = true): PostMeta | null {
   const [meta, setMeta] = useState(() => cachedMeta(id));
   useEffect(() => {
-    const hit = cachedMeta(id);
+    const hit = enabled ? cachedMeta(id) : null;
     setMeta(hit);
-    if (hit) return;
+    if (hit || !enabled) return;
     let live = true;
     const fetch = () => loadMeta(id).then((m) => live && setMeta(m), () => {});
     const stop = ref?.current ? whenVisible(ref.current, fetch) : (fetch(), undefined);
@@ -183,7 +183,7 @@ export function useMeta(id: number, ref?: React.RefObject<Element>): PostMeta | 
       live = false;
       stop?.();
     };
-  }, [id, ref]);
+  }, [id, ref, enabled]);
   return meta;
 }
 

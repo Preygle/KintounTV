@@ -3,6 +3,16 @@
 All notable changes to KintounTV. Versions follow [Semantic Versioning](https://semver.org);
 `npm run release` publishes the section matching the version in `package.json`.
 
+## 1.3.0 — 2026-10-19
+
+- **Categories, rebuilt:** all 74 categories in groups (Genres, Worlds & settings, Powers, danger &
+  crime, Love & relationships, Everyday life, Sports & the arts, Adult), each with a one-line
+  explanation and the poster of a title that represents it.
+- **Combine categories:** pick several and match **any** (OR) or **all** (AND) of them. AND reads
+  every selected category in full, so it finds every title they share; results are ranked by the
+  catalog's ratings and the selection is kept in the link.
+- Duplicate categories in the catalog (Comedy, Supernatural, Suspense) now show once.
+
 ## 1.2.1 — 2026-10-19
 
 - **New logo:** the KintounTV cloud wordmark in the header and README, and the cloud as the app icon
