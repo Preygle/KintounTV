@@ -1,8 +1,6 @@
 <div align="center">
 
-<img src="desktop/winres/icon.svg" width="96" alt="KintounTV logo">
-
-# KintounTV
+<h1><img src="public/logo.png" width="420" alt="KintounTV"></h1>
 
 **Ad-free anime streaming for Windows and Android: an in-app player, automatic intro skipping and
 cross-device sync.**

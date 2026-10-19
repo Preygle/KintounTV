@@ -3,6 +3,11 @@
 All notable changes to KintounTV. Versions follow [Semantic Versioning](https://semver.org);
 `npm run release` publishes the section matching the version in `package.json`.
 
+## 1.2.1 — 2026-10-19
+
+- **New logo:** the KintounTV cloud wordmark in the header and README, and the cloud as the app icon
+  (Windows, Android) and favicon.
+
 ## 1.2.0 — 2026-10-19
 
 A full redesign.

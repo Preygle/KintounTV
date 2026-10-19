@@ -11,7 +11,7 @@ export function Img({ src, alt = "", label, className }: { src?: string | null; 
   if (!src || failed) {
     return (
       <div className={`img-fallback ${className ?? ""}`} aria-hidden="true">
-        <img src="/logo-mark.svg" alt="" />
+        <img src="/logo-mark.png" alt="" />
         {label && <span>{label}</span>}
       </div>
     );

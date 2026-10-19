@@ -175,10 +175,7 @@ function App() {
       <ScrollToTop />
       <header className="topbar">
         <Link to="/" className="brand" aria-label="KintounTV home">
-          <img src="/logo-mark.svg" alt="" width={44} height={29} />
-          <span>
-            Kintoun<b>TV</b>
-          </span>
+          <img src="/logo.png" alt="KintounTV" width={216} height={44} />
         </Link>
         <nav className="topnav" aria-label="Main">
           {NAV.map((n) => (

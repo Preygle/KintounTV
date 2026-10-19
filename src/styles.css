@@ -91,15 +91,11 @@ img {
   display: flex;
   flex: none;
   align-items: center;
-  gap: 10px;
-  font-size: 23px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
 }
 
-.brand b {
-  color: var(--accent);
-  font-weight: 800;
+.brand img {
+  width: auto;
+  height: 44px;
 }
 
 .topnav {
@@ -377,12 +373,8 @@ img {
     gap: 12px;
     height: 60px;
   }
-  .brand {
-    font-size: 20px;
-  }
   .brand img {
-    width: 38px;
-    height: auto;
+    height: 34px;
   }
   .icon-btn.search-toggle {
     display: grid;
