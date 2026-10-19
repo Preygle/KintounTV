@@ -34,12 +34,17 @@ cross-device sync.**
   [AniSkip](https://aniskip.com). Turn it on or off right under the player.
 - **Binge mode.** Next episode and auto-next keep you in fullscreen. If a server fails, the next
   SUB/DUB server takes over automatically.
+- **Watch order at a glance.** Every franchise as a flow chart: seasons in order with arrows, and
+  movies, OVAs, recaps and spin-offs branching off where they fit, each with its art, format and
+  episode count.
 - **Continue Watching and History.** Pick up where you left off, with history grouped by day.
 - **Sync across devices.** Sign in with a username and password once, and My List and history follow
   you between Windows and Android.
 - **Light.** The Windows app is 7.5 MB and starts instantly; the Android app is 0.2 MB.
 
 ## Screenshots
+
+<img src="docs/screenshots/watch-order.jpg" alt="Watch order flow chart for Attack on Titan" width="100%">
 
 | Player | Details | Phone |
 | :---: | :---: | :---: |

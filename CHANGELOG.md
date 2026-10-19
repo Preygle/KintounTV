@@ -3,6 +3,16 @@
 All notable changes to KintounTV. Versions follow [Semantic Versioning](https://semver.org);
 `npm run release` publishes the section matching the version in `package.json`.
 
+## 1.1.0 — 2026-10-19
+
+- **Watch order flow chart** on every title page, replacing the old Seasons row. The whole franchise
+  is mapped: seasons as numbered steps with arrows, and movies, OVAs, recaps and spin-offs branching
+  off the step they belong to. Each tile shows its poster, format (TV, Movie, OVA, Special, ONA),
+  episode count or runtime, season, airing status, "You're here" and your resume episode.
+- Recap movies sit after the last season they cover; remasters (Dragon Ball Z Kai) get their own line.
+- Long-running series with many movies (Detective Conan, One Piece) spread them in a wide grid; on
+  phones the chart becomes a vertical timeline.
+
 ## 1.0.0 — 2026-10-18
 
 First public release.
