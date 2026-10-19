@@ -3,6 +3,13 @@
 All notable changes to KintounTV. Versions follow [Semantic Versioning](https://semver.org);
 `npm run release` publishes the section matching the version in `package.json`.
 
+## 1.4.0 — 2026-10-20
+
+- **Timeline previews:** hover over the seek bar (Windows) or drag it (Android) to see the frame at
+  that point, Netflix-style. Frames come from the stream's own keyframe index, about 30 KB each, and
+  are kept for the episode so going back over the bar is instant. Streams or devices that can't make
+  previews show the time as before.
+
 ## 1.3.0 — 2026-10-19
 
 - **Categories, rebuilt:** all 74 categories in groups (Genres, Worlds & settings, Powers, danger &

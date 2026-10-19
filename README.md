@@ -30,6 +30,8 @@ cross-device sync.**
   with Ctrl + K, filter by genre, and get notified when airing shows you follow get new episodes.
 - **A real player.** Quality selection, subtitles when the stream has them, playback speed,
   keyboard shortcuts, and true fullscreen with controls that hide while you watch.
+- **Timeline previews.** Hover over the seek bar (or drag it on Android) to see the frame at that
+  point before you jump.
 - **Skips intros, recaps and credits** automatically, using community timings from
   [AniSkip](https://aniskip.com). Turn it on or off right under the player.
 - **Binge mode.** Next episode and auto-next keep you in fullscreen. If a server fails, the next

@@ -170,16 +170,61 @@
 }
 
 .seek-tip {
+  --tip-half: 26px;
   position: absolute;
   bottom: 22px;
   transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.seek-time {
   padding: 3px 7px;
   border-radius: 5px;
   background: rgb(0 0 0 / 0.85);
   font-size: 12px;
   font-weight: 700;
-  pointer-events: none;
-  white-space: nowrap;
+}
+
+/* Frame preview above the time while hovering (mouse) or dragging (touch). */
+.seek-tip.has-preview {
+  --preview-w: 240px;
+  --tip-half: calc(var(--preview-w) / 2 + 2px);
+}
+
+.seek-preview {
+  display: block;
+  width: var(--preview-w);
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border: 2px solid rgb(255 255 255 / 0.9);
+  border-radius: 8px;
+  background: #000;
+  box-shadow: 0 8px 28px rgb(0 0 0 / 0.6);
+}
+
+.seek-preview img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.is-fullscreen .seek-tip.has-preview {
+  --preview-w: 320px;
+}
+
+@media (max-width: 640px), (pointer: coarse) and (max-width: 900px) {
+  .seek-tip.has-preview {
+    --preview-w: 176px;
+  }
+  .is-fullscreen .seek-tip.has-preview {
+    --preview-w: 220px;
+  }
 }
 
 .player-row {

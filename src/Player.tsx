@@ -16,6 +16,7 @@ import {
 } from "./icons";
 import { getPlayerPrefs, setPlayerPrefs, usePlayerPrefs } from "./progress";
 import { fetchSkips, SKIP_LABEL, type SkipLookup, type SkipSegment } from "./skips";
+import { usePreview } from "./trickplay";
 
 declare global {
   interface Window {
@@ -113,7 +114,7 @@ export default function Player({ src, overlay, skip, startAt = 0, title, subtitl
   const [idle, setIdle] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const [scrub, setScrub] = useState<number | null>(null);
-  const [hover, setHover] = useState<{ x: number; t: number } | null>(null);
+  const [hover, setHover] = useState<number | null>(null); // seek-bar position under the pointer (0–1)
   const [segments, setSegments] = useState<SkipSegment[]>([]);
   const [toast, setToast] = useState<string | null>(null);
   const skippedRef = useRef(new Set<string>());
@@ -424,15 +425,17 @@ export default function Player({ src, overlay, skip, startAt = 0, title, subtitl
   };
   const onSeekDown = (e: React.PointerEvent) => {
     e.currentTarget.setPointerCapture(e.pointerId);
-    setScrub(ratioAt(e.clientX));
+    const r = ratioAt(e.clientX);
+    setScrub(r);
+    setHover(r); // touch has no hover: the preview follows the finger while dragging
   };
   const onSeekMove = (e: React.PointerEvent) => {
     const r = ratioAt(e.clientX);
-    const rect = seekRef.current!.getBoundingClientRect();
-    setHover({ x: r * rect.width, t: r * duration });
+    setHover(r);
     if (scrub !== null) setScrub(r);
   };
   const onSeekUp = (e: React.PointerEvent) => {
+    if (e.pointerType !== "mouse") setHover(null);
     if (scrub === null) return;
     const video = videoRef.current;
     if (video && duration) video.currentTime = ratioAt(e.clientX) * duration;
@@ -477,6 +480,8 @@ export default function Player({ src, overlay, skip, startAt = 0, title, subtitl
       : "None";
 
   const shown = scrub ?? (duration ? time / duration : 0);
+  const peek = duration > 0 ? (scrub ?? hover) : null;
+  const preview = usePreview(src, peek === null ? null : peek * duration);
   const hideUi = idle && !paused && !menu && scrub === null;
   const volumeLevel = prefs.muted ? 0 : prefs.volume;
 
@@ -535,9 +540,11 @@ export default function Player({ src, overlay, skip, startAt = 0, title, subtitl
             <div className="seek-played" style={{ width: `${shown * 100}%` }} />
           </div>
           <div className="seek-thumb" style={{ left: `${shown * 100}%` }} />
-          {hover && (
-            <div className="seek-tip" style={{ left: hover.x }}>
-              {formatTime(hover.t)}
+          {peek !== null && (
+            // Kept inside the bar: the centre is clamped half a tip's width from either end.
+            <div className={`seek-tip${preview.available ? " has-preview" : ""}`} style={{ left: `clamp(var(--tip-half), ${peek * 100}%, calc(100% - var(--tip-half)))` }}>
+              {preview.available && <span className="seek-preview">{preview.image && <img src={preview.image} alt="" />}</span>}
+              <span className="seek-time">{formatTime(peek * duration)}</span>
             </div>
           )}
         </div>
