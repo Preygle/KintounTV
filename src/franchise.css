@@ -1,0 +1,503 @@
+/* ---------- watch order (FranchiseFlow) ---------- */
+
+.franchise {
+  margin: 8px 0 24px;
+  --flow-line: #3a3a4c;
+  --flow-col: 184px;
+  --flow-gap: 40px;
+}
+
+.franchise-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  margin: 0 var(--gutter) 14px;
+}
+
+.franchise-head .row-title {
+  margin: 0;
+}
+
+.franchise-sum {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.flow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--flow-gap);
+  padding: 2px var(--gutter) 14px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.flow-col {
+  position: relative;
+  flex: 0 0 var(--flow-col);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* Step markers on a line, with an arrow into the next step. */
+.flow-marker {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 28px;
+}
+
+.flow-num {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  background: var(--bg);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.flow-col.current .flow-num {
+  background: var(--accent);
+}
+
+.flow-col:not(:last-child) .flow-marker::after {
+  content: "";
+  position: absolute;
+  left: 32px;
+  right: calc(-1 * var(--flow-gap) + 8px);
+  top: 13px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent), rgb(124 92 255 / 0.45));
+}
+
+.flow-col:not(:last-child) .flow-marker::before {
+  content: "";
+  position: absolute;
+  right: calc(-1 * var(--flow-gap) + 8px);
+  top: 9px;
+  width: 8px;
+  height: 8px;
+  border-top: 2px solid rgb(124 92 255 / 0.8);
+  border-right: 2px solid rgb(124 92 255 / 0.8);
+  transform: rotate(45deg);
+}
+
+/* Main tiles */
+.flow-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.flow-art {
+  position: relative;
+  aspect-ratio: 2 / 3;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface);
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  transition: outline-color 0.15s ease;
+}
+
+.flow-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.25s ease;
+}
+
+.flow-tile:hover .flow-art img {
+  transform: scale(1.04);
+}
+
+.flow-tile.current .flow-art {
+  outline-color: var(--accent);
+}
+
+.flow-tile:focus-visible,
+.flow-extra:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: var(--radius);
+}
+
+.flow-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.flow-title {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.flow-meta {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* Format chips: TV, Movie, OVA, Special, ONA */
+.fmt {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: #4a4a5c;
+  color: #fff;
+}
+
+.fmt.tv {
+  background: #7c5cff;
+}
+
+.fmt.ona {
+  background: #3b8cff;
+}
+
+.fmt.movie {
+  background: #f5a524;
+  color: #1c1300;
+}
+
+.fmt.ova {
+  background: #2bc9a1;
+  color: #00160f;
+}
+
+.fmt.special {
+  background: #ff6fb1;
+  color: #23000f;
+}
+
+.fmt.inline {
+  position: static;
+  display: inline-block;
+  margin-right: 6px;
+  padding: 0 5px;
+  font-size: 9.5px;
+  line-height: 15px;
+  vertical-align: 1px;
+}
+
+.flow-status {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: rgb(0 0 0 / 0.72);
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.flow-status.airing::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 5px;
+  border-radius: 50%;
+  background: #3ddc84;
+  vertical-align: 1px;
+}
+
+.flow-here {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--accent);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.flow-here.resume {
+  background: rgb(0 0 0 / 0.75);
+}
+
+/* Extras branching off a step */
+.flow-extras {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-left: 6px;
+  padding: 4px 0 0 10px;
+  border-left: 2px dashed var(--flow-line);
+}
+
+.flow-extra {
+  position: relative;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 9px;
+  align-items: center;
+  padding: 6px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  transition: background 0.15s ease;
+}
+
+.flow-extra::before {
+  content: "";
+  position: absolute;
+  left: -12px;
+  top: 50%;
+  width: 10px;
+  border-top: 2px dashed var(--flow-line);
+}
+
+.flow-extra:hover {
+  background: var(--surface-2);
+}
+
+.flow-extra.current {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.flow-thumb {
+  aspect-ratio: 2 / 3;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+
+.flow-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.flow-x-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.flow-rel {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #a893ff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.flow-via {
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--muted);
+}
+
+.flow-x-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.flow-x-meta {
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.flow-more {
+  align-self: flex-start;
+  padding: 5px 12px;
+  border: 1px solid var(--flow-line);
+  border-radius: 999px;
+  background: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.flow-more:hover {
+  color: var(--text);
+  border-color: var(--muted);
+}
+
+/* One step only (a long series with many movies): extras fill the width beside it. */
+.flow.solo {
+  overflow: visible;
+}
+
+.flow.solo .flow-marker {
+  display: none;
+}
+
+.flow.solo .flow-col {
+  flex: 1 1 auto;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 0;
+}
+
+.flow.solo .flow-tile {
+  flex: 0 0 var(--flow-col);
+}
+
+.flow.solo .flow-extras {
+  position: relative;
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  align-content: start;
+  margin: 0;
+  padding: 0 0 0 32px;
+  border-left: none;
+}
+
+.flow.solo .flow-extras::before {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 34px;
+  width: 20px;
+  border-top: 2px dashed var(--flow-line);
+}
+
+.flow.solo .flow-extra::before {
+  display: none;
+}
+
+.flow.solo .flow-more {
+  grid-column: 1 / -1;
+}
+
+/* Loading */
+.flow-col.skeleton .flow-num {
+  border-color: var(--flow-line);
+}
+
+.flow-col.skeleton .flow-art,
+.skeleton-line {
+  animation: pulse 1.2s ease-in-out infinite alternate;
+}
+
+.skeleton-line {
+  height: 12px;
+  width: 70%;
+  border-radius: 6px;
+  background: var(--surface);
+}
+
+/* Phones: the flow runs top to bottom along a spine. */
+@media (max-width: 640px) {
+  .flow:not(.solo) {
+    flex-direction: column;
+    gap: 0;
+    overflow: visible;
+  }
+
+  .flow:not(.solo) .flow-col {
+    flex: none;
+    display: grid;
+    grid-template-columns: 28px minmax(0, 1fr);
+    column-gap: 12px;
+    row-gap: 10px;
+    width: 100%;
+    padding-bottom: 22px;
+  }
+
+  .flow:not(.solo) .flow-marker {
+    grid-column: 1;
+    grid-row: 1 / span 3;
+    align-items: flex-start;
+    height: auto;
+  }
+
+  .flow:not(.solo) .flow-col:not(:last-child) .flow-marker::after {
+    left: 13px;
+    right: auto;
+    top: 30px;
+    bottom: -22px;
+    width: 2px;
+    height: auto;
+    background: linear-gradient(180deg, var(--accent), rgb(124 92 255 / 0.45));
+  }
+
+  .flow:not(.solo) .flow-col:not(:last-child) .flow-marker::before {
+    display: none;
+  }
+
+  .flow:not(.solo) .flow-tile,
+  .flow:not(.solo) .flow-extras,
+  .flow:not(.solo) .skeleton-line {
+    grid-column: 2;
+  }
+
+  .flow-tile {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .flow:not(.solo) .flow-col .flow-art,
+  .flow.solo .flow-art {
+    flex: 0 0 96px;
+    width: 96px;
+  }
+
+  .flow:not(.solo) .flow-extras {
+    margin-left: 0;
+  }
+
+  .flow.solo .flow-col {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .flow.solo .flow-tile {
+    flex: none;
+  }
+
+  .flow.solo .flow-extras {
+    grid-template-columns: minmax(0, 1fr);
+    margin-left: 13px;
+    padding: 4px 0 0 14px;
+    border-left: 2px dashed var(--flow-line);
+  }
+
+  .flow.solo .flow-extras::before {
+    display: none;
+  }
+
+  .flow.solo .flow-extra::before {
+    display: block;
+  }
+}

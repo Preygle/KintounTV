@@ -307,22 +307,6 @@ img {
   }
 }
 
-.season-card {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.season-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--muted);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));

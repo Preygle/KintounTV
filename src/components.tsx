@@ -1,23 +1,12 @@
 import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import type { Post, Season } from "./api";
+import type { Post } from "./api";
 
 export function PosterCard({ post }: { post: Post }) {
   return (
     <Link to={`/post/${post.id}`} className="poster-card">
       <img src={post.poster} alt="" loading="lazy" decoding="async" />
       {post.age && <span className="badge">{post.age}</span>}
-    </Link>
-  );
-}
-
-export function SeasonCard({ season }: { season: Season }) {
-  return (
-    <Link to={`/post/${season.id}`} className="season-card">
-      <div className="poster-card">
-        <img src={season.poster} alt="" loading="lazy" decoding="async" />
-      </div>
-      <span className="season-title">{season.title}</span>
     </Link>
   );
 }

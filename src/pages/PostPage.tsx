@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { api, watchApi } from "../api";
-import { PosterRow, Row, SeasonCard, Spinner, Status } from "../components";
+import { PosterRow, Spinner, Status } from "../components";
+import FranchiseFlow from "../FranchiseFlow";
 import { useAsync } from "../hooks";
 import { BackIcon, BookmarkIcon, PlayIcon, ShareIcon } from "../icons";
 import { toggleMyList, useMyList } from "../myList";
@@ -71,13 +72,7 @@ export default function PostPage() {
         </section>
       )}
 
-      {!!post.seasons?.length && (
-        <Row title="Seasons">
-          {post.seasons.map((s) => (
-            <SeasonCard key={s.id} season={s} />
-          ))}
-        </Row>
-      )}
+      <FranchiseFlow post={post} />
       <PosterRow title="Related" posts={post.related} />
       <PosterRow title="You may also like" posts={post.similar} />
     </>

@@ -14,6 +14,7 @@ import Account from "./pages/Account";
 import { syncConfigured, useSync } from "./sync";
 import "./styles.css";
 import "./player.css";
+import "./franchise.css";
 
 const NAV = [
   { to: "/", label: "Home", icon: <HomeIcon />, end: true },
