@@ -28,6 +28,8 @@ cross-device sync.**
 ## Features
 
 - **Watch in the app.** No external player, no ads, no pop-ups and no analytics.
+- **Made for browsing.** Every poster shows its title, rating, format and episode count; search
+  with Ctrl + K, filter by genre, and get notified when airing shows you follow get new episodes.
 - **A real player.** Quality selection, subtitles when the stream has them, playback speed,
   keyboard shortcuts, and true fullscreen with controls that hide while you watch.
 - **Skips intros, recaps and credits** automatically, using community timings from

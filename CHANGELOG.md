@@ -3,6 +3,20 @@
 All notable changes to KintounTV. Versions follow [Semantic Versioning](https://semver.org);
 `npm run release` publishes the section matching the version in `package.json`.
 
+## 1.2.0 — 2026-10-19
+
+A full redesign.
+
+- **New look:** charcoal with orange-gold accents, the Inter typeface, and consistent cards, buttons,
+  focus rings, loading placeholders and fallbacks for missing artwork.
+- **Header:** icon navigation, a single search field (Ctrl + K), notifications and your profile.
+- **Home:** a featured carousel with wide artwork, Continue Watching as 16:9 cards (time left,
+  progress, episode and percentage), and Trending with genre filters.
+- **Every poster** now shows its title, rating, format and episode count.
+- **Notifications:** new episodes of airing shows in My List or Continue Watching.
+- **Pages:** Search with genre and year filters, Categories as a genre picker, release seasons on
+  Latest, and My List with format, status and sort filters and quick remove.
+
 ## 1.1.1 — 2026-10-19
 
 - **Watch order:** later TV series filed as "side stories" of a finished series now continue the
