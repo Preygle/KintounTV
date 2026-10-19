@@ -151,10 +151,24 @@ export function layoutFranchise(nodes: Map<number, FranchiseNode>, startId: numb
     (after.get(a) ?? after.set(a, new Set()).get(a)!).add(b);
     (before.get(b) ?? before.set(b, new Set()).get(b)!).add(a);
   };
+  // A later TV series filed as a "side story" of a TV series continues the story (Dragon Ball Super
+  // and Daima are listed that way under Z), so it joins the line like a sequel.
+  // Spin-offs point back with "Parent Story" too, so the parent must list it as a side story, and
+  // must have ended (shows running alongside a still-airing series, like Conan's, are spin-offs).
+  const continues = (parent: FranchiseNode | undefined, child: FranchiseNode | undefined) =>
+    !!parent &&
+    !!child &&
+    parent.type === "TV" &&
+    parent.status === "Finished Airing" &&
+    child.type === "TV" &&
+    dateKey(child) > dateKey(parent) &&
+    (relation(parent, child.id) ?? "Side Story") === "Side Story";
   for (const n of nodes.values()) {
     for (const l of n.links) {
       if (l.label === "Sequel") edge(n.id, l.id);
       else if (l.label === "Prequel") edge(l.id, n.id);
+      else if (l.label === "Side Story" && continues(n, nodes.get(l.id))) edge(n.id, l.id);
+      else if (l.label === "Parent Story" && continues(nodes.get(l.id), n)) edge(l.id, n.id);
     }
   }
 

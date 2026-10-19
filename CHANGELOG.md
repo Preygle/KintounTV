@@ -3,6 +3,12 @@
 All notable changes to KintounTV. Versions follow [Semantic Versioning](https://semver.org);
 `npm run release` publishes the section matching the version in `package.json`.
 
+## 1.1.1 — 2026-10-19
+
+- **Watch order:** later TV series filed as "side stories" of a finished series now continue the
+  main line. Dragon Ball reads DB → Z → GT → Super → Broly → Super Hero → Daima. Spin-offs
+  (Attack on Titan: Junior High, Detective Conan: Zero's Tea Time) stay as extras.
+
 ## 1.1.0 — 2026-10-19
 
 - **Watch order flow chart** on every title page, replacing the old Seasons row. The whole franchise
