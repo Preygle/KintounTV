@@ -3,6 +3,14 @@
 All notable changes to KintounTV. Versions follow [Semantic Versioning](https://semver.org);
 `npm run release` publishes the section matching the version in `package.json`.
 
+## 1.4.1 — 2026-10-20
+
+- **Fast sync** (on by default; switch it on the Account page, it applies to every device on the
+  account): when you switch devices, the other one picks up within about 30 seconds of where you
+  stopped. Watch progress uploads every 15 seconds and as soon as you leave the app; opening the app
+  pulls straight away, and open devices check every 15 seconds. With it off, sync works as before
+  (every minute while watching, other devices checked every 5 minutes).
+
 ## 1.4.0 — 2026-10-20
 
 - **Downloads:** save one episode, a few, or a whole season (SUB or DUB, up to 1080p) from a title or

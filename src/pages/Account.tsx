@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { PageHeader } from "../components";
-import { sendPasswordReset, signIn, signOut, syncConfigured, syncNow, useSync } from "../sync";
+import { sendPasswordReset, setFastSync, signIn, signOut, syncConfigured, syncNow, useSync } from "../sync";
 
 function ago(t?: number) {
   if (!t) return "not yet";
@@ -137,6 +137,15 @@ export default function Account() {
                 Sign out
               </button>
             </div>
+            <label className="sync-option">
+              <input type="checkbox" checked={sync.fastSync} onChange={(e) => setFastSync(e.target.checked)} />
+              <span>
+                <strong>Fast sync</strong>
+                {sync.fastSync
+                  ? "Switching between devices picks up within about 30 seconds of where you stopped. Applies to every device signed in to this account."
+                  : "Watch progress syncs every minute and other devices are checked every 5 minutes, using fewer requests. Applies to every device signed in to this account."}
+              </span>
+            </label>
             <p className="account-note">Signing out keeps everything on this device; sign in again any time to resume syncing. Thumbnails stay on each device.</p>
           </div>
         ) : (

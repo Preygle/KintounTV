@@ -27,8 +27,15 @@ const USERNAME = /^[a-z0-9._-]{3,30}$/;
 const SYNTHETIC_DOMAIN = "users.anilab.app";
 
 const LIST_DELAY = 3000; // My List edits sync quickly
-const PROGRESS_DELAY = 60000; // watch progress changes every few seconds; batch it
-const POLL_EVERY = 5 * 60000; // pick up other devices' changes while open
+// Watch progress changes every few seconds, so it is batched; other devices' changes are polled
+// while the app is on screen. Fast sync (on by default, a per-account setting that syncs with the
+// account) keeps two devices within ~30 s: 15 s + 15 s, plus an upload when the app is left and a
+// pull when it is opened. Normal sync uses about a quarter of the database requests.
+const TIMING = {
+  fast: { progress: 15000, poll: 15000, onReturn: 5000 },
+  normal: { progress: 60000, poll: 5 * 60000, onReturn: 60000 },
+};
+const SETTINGS_KEY = "kintoun.syncSettings";
 
 export interface Account {
   username: string; // what the user typed (a username or an email address)
@@ -47,13 +54,23 @@ export interface SyncState {
   account?: Account;
   lastSync?: number;
   error?: string;
+  fastSync: boolean;
 }
+
+/** Account settings; the newer change (at) wins when devices disagree. */
+interface SyncSettings {
+  fastSync: boolean;
+  at: number;
+}
+
+const DEFAULT_SETTINGS: SyncSettings = { fastSync: true, at: 0 };
 
 interface Payload {
   v: 1;
   updatedAt?: number;
   myList: MyListState;
   progress: ProgressData;
+  settings?: SyncSettings;
 }
 
 // ---- state -----------------------------------------------------------------------------------------
@@ -76,8 +93,38 @@ function saveAuth() {
   }
 }
 
+function loadSettings(uid: string | undefined): SyncSettings {
+  try {
+    const all = JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? "{}") as Record<string, SyncSettings>;
+    return (uid && all[uid]) || DEFAULT_SETTINGS;
+  } catch {
+    return DEFAULT_SETTINGS;
+  }
+}
+
+function saveSettings() {
+  if (!auth) return;
+  try {
+    const all = JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? "{}") as Record<string, SyncSettings>;
+    all[auth.uid] = settings;
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(all));
+  } catch {
+    // ignore
+  }
+}
+
 let auth = syncConfigured ? loadAuth() : null;
-let state: SyncState = auth ? { status: "idle", account: { username: auth.username } } : { status: "signed-out" };
+let settings = loadSettings(auth?.uid);
+let state: SyncState = auth ? { status: "idle", account: { username: auth.username }, fastSync: settings.fastSync } : { status: "signed-out", fastSync: settings.fastSync };
+const timing = () => (settings.fastSync ? TIMING.fast : TIMING.normal);
+
+/** Turns fast sync on or off for the signed-in account (on every device it is signed in on). */
+export function setFastSync(on: boolean) {
+  settings = { fastSync: on, at: Date.now() };
+  saveSettings();
+  setState({ fastSync: on });
+  schedule(LIST_DELAY);
+}
 const listeners = new Set<() => void>();
 
 function setState(patch: Partial<SyncState>, replace = false) {
@@ -161,7 +208,8 @@ export async function signIn(username: string, password: string, create: boolean
     expiresAt: Date.now() + Number(res.expiresIn ?? 3600) * 1000,
   };
   saveAuth();
-  setState({ status: "idle", account: { username: name } }, true);
+  settings = loadSettings(auth.uid);
+  setState({ status: "idle", account: { username: name }, fastSync: settings.fastSync }, true);
   await syncNow();
 }
 
@@ -172,7 +220,8 @@ export async function sendPasswordReset(email: string): Promise<void> {
 export function signOut() {
   auth = null;
   saveAuth();
-  setState({ status: "signed-out" }, true);
+  settings = DEFAULT_SETTINGS;
+  setState({ status: "signed-out", fastSync: settings.fastSync }, true);
 }
 
 async function idToken(): Promise<string> {
@@ -187,7 +236,7 @@ async function idToken(): Promise<string> {
     // Password changed or account removed: the user has to sign in again.
     auth = null;
     saveAuth();
-    setState({ status: "error", account: undefined, error: "Please sign in again (your password may have changed)." }, true);
+    setState({ status: "error", account: undefined, error: "Please sign in again (your password may have changed).", fastSync: settings.fastSync }, true);
     throw new SignedOutError();
   }
   if (!res.ok) throw new Error(`Token refresh failed (${res.status})`);
@@ -238,7 +287,7 @@ function normalizeProgress(p: Partial<ProgressData> | undefined): ProgressData {
   return { episodes: {}, last: {}, series: {}, hidden: {}, deleted: {}, clearedAt: 0, ...p };
 }
 
-const localSnapshot = () => canonical({ myList: getMyListState(), progress: getProgressState() });
+const localSnapshot = () => canonical({ myList: getMyListState(), progress: getProgressState(), settings });
 let syncedSnapshot = "";
 let running: Promise<void> | null = null;
 
@@ -255,10 +304,16 @@ export function syncNow(): Promise<void> {
       const progress = remote ? mergeProgress(localProgress, normalizeProgress(remote.progress)) : localProgress;
       if (canonical(list) !== canonical(localList)) replaceMyList(list);
       if (canonical(progress) !== canonical(localProgress)) replaceProgress(progress);
+      const remoteSettings = remote?.settings ?? DEFAULT_SETTINGS;
+      if (remoteSettings.at > settings.at) {
+        settings = remoteSettings;
+        saveSettings();
+        setState({ fastSync: settings.fastSync });
+      }
 
-      const merged = canonical({ myList: list, progress });
-      const remoteNow = remote ? canonical({ myList: normalizeList(remote.myList), progress: normalizeProgress(remote.progress) }) : null;
-      if (merged !== remoteNow) await writeRemote(JSON.stringify({ v: 1, updatedAt: Date.now(), myList: list, progress } satisfies Payload));
+      const merged = canonical({ myList: list, progress, settings });
+      const remoteNow = remote ? canonical({ myList: normalizeList(remote.myList), progress: normalizeProgress(remote.progress), settings: remoteSettings }) : null;
+      if (merged !== remoteNow) await writeRemote(JSON.stringify({ v: 1, updatedAt: Date.now(), myList: list, progress, settings } satisfies Payload));
       syncedSnapshot = localSnapshot();
       setState({ status: "idle", lastSync: Date.now() });
     } catch (err) {
@@ -287,12 +342,18 @@ function schedule(delay: number) {
 subscribeMyList(() => {
   if (localSnapshot() !== syncedSnapshot) schedule(LIST_DELAY);
 });
-subscribeProgress(() => schedule(PROGRESS_DELAY));
+subscribeProgress(() => schedule(timing().progress));
 document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible" && Date.now() - (state.lastSync ?? 0) > 60000) schedule(500);
+  if (document.visibilityState === "visible") {
+    // Opened or switched back to: catch up with the other devices.
+    if (Date.now() - (state.lastSync ?? 0) > timing().onReturn) schedule(500);
+  } else if (settings.fastSync && auth && localSnapshot() !== syncedSnapshot) {
+    // Leaving the app (switching devices): upload now rather than when the batch is due.
+    void syncNow();
+  }
 });
 window.addEventListener("online", () => schedule(1000));
 window.setInterval(() => {
-  if (document.visibilityState === "visible") schedule(0);
-}, POLL_EVERY);
+  if (document.visibilityState === "visible" && Date.now() - (state.lastSync ?? 0) >= timing().poll - 1000) schedule(0);
+}, TIMING.fast.poll);
 if (auth) schedule(1500);
