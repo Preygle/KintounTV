@@ -284,6 +284,22 @@ func fetchBytes(ctx context.Context, target string, headers map[string]string) (
 
 func relayPath(target string) string { return "/hls?u=" + url.QueryEscape(target) }
 
+// serveIntroDB relays IntroDB skip times (src/skips.ts): its API only allows its own site cross-origin.
+func serveIntroDB(rw http.ResponseWriter, r *http.Request) {
+	q := url.Values{}
+	for _, k := range []string{"imdb_id", "season", "episode"} {
+		q.Set(k, r.URL.Query().Get(k))
+	}
+	data, err := fetchBytes(r.Context(), "https://api.introdb.app/segments?"+q.Encode(), map[string]string{"Accept": "application/json"})
+	if err != nil {
+		writeJSONError(rw, &httpError{http.StatusNotFound, "no skip times"})
+		return
+	}
+	rw.Header().Set("Content-Type", "application/json")
+	rw.Header().Set("Cache-Control", "private, max-age=3600")
+	rw.Write(data)
+}
+
 var uriAttr = regexp.MustCompile(`URI="([^"]+)"`)
 
 // serveHLS relays one playlist or media segment. Playlists are rewritten so that every variant,

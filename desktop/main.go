@@ -102,7 +102,7 @@ func newHandler(host string, web fs.FS, downloadsDir string) http.Handler {
 			http.Error(rw, "forbidden", http.StatusForbidden)
 			return
 		}
-		isData := strings.HasPrefix(r.URL.Path, "/api/") || strings.HasPrefix(r.URL.Path, "/stream/") || strings.HasPrefix(r.URL.Path, "/downloads/") || r.URL.Path == "/hls"
+		isData := strings.HasPrefix(r.URL.Path, "/api/") || strings.HasPrefix(r.URL.Path, "/stream/") || strings.HasPrefix(r.URL.Path, "/downloads/") || strings.HasPrefix(r.URL.Path, "/skips/") || r.URL.Path == "/hls"
 		// ...and only let our own page use the data endpoints, so other sites open in a browser
 		// cannot use them as a relay.
 		if site := r.Header.Get("Sec-Fetch-Site"); isData && site != "" && site != "same-origin" && site != "none" {
@@ -119,6 +119,8 @@ func newHandler(host string, web fs.FS, downloadsDir string) http.Handler {
 			streams.serve(rw, r)
 		case r.URL.Path == "/hls":
 			serveHLS(rw, r)
+		case r.URL.Path == "/skips/introdb":
+			serveIntroDB(rw, r)
 		case strings.HasPrefix(r.URL.Path, "/downloads/"):
 			downloads.serve(rw, r)
 		default:

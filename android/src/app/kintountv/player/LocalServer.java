@@ -73,6 +73,7 @@ final class LocalServer implements Downloads.Resolver {
             if (path.startsWith("/stream/")) return stream(path, url);
             if (path.equals("/hls")) return hls(url.getQueryParameter("u"), headers);
             if (path.startsWith("/downloads/")) return downloads.handle(path, url, headers);
+            if (path.equals("/skips/introdb")) return introDB(url);
             return asset(path);
         } catch (HttpError e) {
             return json(e.status, error(e.getMessage()));
@@ -263,6 +264,28 @@ final class LocalServer implements Downloads.Resolver {
         } finally {
             c.disconnect();
         }
+    }
+
+    // ---- skip times ---------------------------------------------------------------------------------
+
+    /** IntroDB skip times (src/skips.ts): its API only allows its own site cross-origin. */
+    private WebResourceResponse introDB(Uri url) throws Exception {
+        String target = "https://api.introdb.app/segments?imdb_id=" + Uri.encode(nonNull(url.getQueryParameter("imdb_id")))
+                + "&season=" + Uri.encode(nonNull(url.getQueryParameter("season")))
+                + "&episode=" + Uri.encode(nonNull(url.getQueryParameter("episode")));
+        Map<String, String> h = new HashMap<>();
+        h.put("Accept", "application/json");
+        HttpURLConnection c = Net.open("GET", target, h, null);
+        try {
+            byte[] data = Net.readAll(c);
+            return bytes(c.getResponseCode() == 200 ? 200 : 404, "application/json", data);
+        } finally {
+            c.disconnect();
+        }
+    }
+
+    private static String nonNull(String s) {
+        return s == null ? "" : s;
     }
 
     // ---- HLS relay ------------------------------------------------------------------------------

@@ -49,6 +49,7 @@ async function config(postId) {
 }
 
 const relayPath = (url) => `/hls?u=${encodeURIComponent(url)}`;
+const INTRODB = "https://api.introdb.app/segments";
 
 async function watch(path, q) {
   const c = await config(q.get("id"));
@@ -111,7 +112,7 @@ async function relay(req, res, target) {
 // Returns true when the request was handled.
 export async function handleStream(req, res) {
   const url = new URL(req.url, "http://localhost");
-  if (url.pathname !== "/hls" && !url.pathname.startsWith("/stream/")) return false;
+  if (url.pathname !== "/hls" && !url.pathname.startsWith("/stream/") && url.pathname !== "/skips/introdb") return false;
   const site = req.headers["sec-fetch-site"];
   if (site && site !== "same-origin" && site !== "none") {
     res.writeHead(403).end("forbidden");
@@ -119,7 +120,13 @@ export async function handleStream(req, res) {
   }
   try {
     if (url.pathname === "/hls") await relay(req, res, url.searchParams.get("u"));
-    else {
+    else if (url.pathname === "/skips/introdb") {
+      // IntroDB only allows its own site cross-origin, so its skip times come through here.
+      const q = new URLSearchParams(["imdb_id", "season", "episode"].map((k) => [k, url.searchParams.get(k) ?? ""]));
+      const upstream = await fetchRetry(new URL(`${INTRODB}?${q}`), { headers: { Accept: "application/json" } });
+      res.writeHead(upstream.status, { "Content-Type": "application/json", "Cache-Control": "private, max-age=3600" });
+      res.end(Buffer.from(await upstream.arrayBuffer()));
+    } else {
       const body = JSON.stringify(await watch(url.pathname, url.searchParams));
       res.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" }).end(body);
     }
