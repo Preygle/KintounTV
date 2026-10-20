@@ -5,7 +5,9 @@ import { rememberMeta, useBanner } from "../catalog";
 import { Img, PosterRow, Rating, Spinner, Status } from "../components";
 import FranchiseFlow from "../FranchiseFlow";
 import { useAsync } from "../hooks";
-import { BackIcon, BookmarkIcon, PlayIcon, ShareIcon } from "../icons";
+import DownloadDialog from "../DownloadDialog";
+import { useDownloads } from "../downloads";
+import { BackIcon, BookmarkIcon, DownloadIcon, PlayIcon, ShareIcon } from "../icons";
 import { toggleMyList, useMyList } from "../myList";
 import { useProgress } from "../progress";
 
@@ -17,6 +19,9 @@ export default function PostPage() {
   const resume = useProgress().last[id];
   const [copied, setCopied] = useState(false);
   const banner = useBanner(id, post?.title, !!post);
+  const downloads = useDownloads();
+  const [downloading, setDownloading] = useState(false);
+  const episodes = useAsync(() => (downloading ? watchApi.episodes(id) : Promise.resolve(null)), [id, downloading]);
   useEffect(() => {
     if (post) rememberMeta(post);
   }, [post]);
@@ -68,6 +73,11 @@ export default function PostPage() {
               <button className="btn" onClick={() => toggleMyList(id)} aria-pressed={inList}>
                 <BookmarkIcon filled={inList} /> {inList ? "In My List" : "Add to My List"}
               </button>
+              {downloads.supported && (
+                <button className="btn" onClick={() => setDownloading(true)}>
+                  <DownloadIcon /> Download
+                </button>
+              )}
               <button className="btn" onClick={share}>
                 <ShareIcon /> {copied ? "Copied" : "Share"}
               </button>
@@ -82,6 +92,11 @@ export default function PostPage() {
           <p>{post.overview}</p>
         </section>
       )}
+
+      {downloading && episodes.data && (
+        <DownloadDialog postId={id} title={post.title} poster={post.poster} episodes={episodes.data} onClose={() => setDownloading(false)} />
+      )}
+      {downloading && episodes.error && <Status message={episodes.error} onRetry={episodes.reload} />}
 
       <FranchiseFlow post={post} />
       <PosterRow title="Related" posts={post.related} />

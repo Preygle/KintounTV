@@ -25,20 +25,22 @@ import java.util.regex.Pattern;
 
 /**
  * Serves the in-app origin: bundled site files, the AniLab catalog API proxy (/api), the KYOTO
- * Player streaming lookups (/stream) and the HLS relay (/hls). Android counterpart of the desktop
- * exe's Go server (desktop/api.go, desktop/stream.go) — keep the behaviour in sync.
+ * Player streaming lookups (/stream), the HLS relay (/hls) and downloads (/downloads, see
+ * {@link Downloads}). Android counterpart of the desktop exe's Go server (desktop/api.go,
+ * desktop/stream.go, desktop/downloads.go) — keep the behaviour in sync.
  */
-final class LocalServer {
+final class LocalServer implements Downloads.Resolver {
     private static final String UPSTREAM = "https://anilab2.amdapi.click/api/";
     private static final Set<String> ENDPOINTS = new HashSet<>(Arrays.asList("home", "config", "categories", "category", "latest", "post", "search", "list"));
     private static final String KYOTO = "https://app.kyotoplayer.com/api/v4/";
     private static final String KYOTO_UA = "okhttp/4.12.0";
-    private static final String BROWSER_UA = "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Mobile Safari/537.36";
-    private static final Pattern ID = Pattern.compile("^[A-Za-z0-9_./-]{1,64}$");
+    static final String BROWSER_UA = "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Mobile Safari/537.36";
+    static final Pattern ID = Pattern.compile("^[A-Za-z0-9_./-]{1,64}$");
     private static final Pattern URI_ATTR = Pattern.compile("URI=\"([^\"]+)\"");
     private static final long API_TTL = 3 * 60_000, CONFIG_TTL = 10 * 60_000, EPISODES_TTL = 5 * 60_000;
 
     private final AssetManager assets;
+    private final Downloads downloads;
     private final Map<String, Cached> cache = new LinkedHashMap<String, Cached>(64, 0.75f, true) {
         @Override
         protected boolean removeEldestEntry(Map.Entry<String, Cached> eldest) {
@@ -58,8 +60,10 @@ final class LocalServer {
         }
     }
 
-    LocalServer(AssetManager assets) {
+    LocalServer(AssetManager assets, Downloads downloads) {
         this.assets = assets;
+        this.downloads = downloads;
+        downloads.setResolver(this);
     }
 
     WebResourceResponse handle(String method, Uri url, Map<String, String> headers) {
@@ -68,6 +72,7 @@ final class LocalServer {
             if (path.startsWith("/api/")) return api(method, path.substring(5), url);
             if (path.startsWith("/stream/")) return stream(path, url);
             if (path.equals("/hls")) return hls(url.getQueryParameter("u"), headers);
+            if (path.startsWith("/downloads/")) return downloads.handle(path, url, headers);
             return asset(path);
         } catch (HttpError e) {
             return json(e.status, error(e.getMessage()));
@@ -177,29 +182,41 @@ final class LocalServer {
                 }
                 return bytes(200, "application/json", data);
             }
-            case "/stream/servers": {
-                String ep = checkId(url.getQueryParameter("episode"), "episode");
-                byte[] data = getBytes(config.getString("servers").replace("%id%", ep), kyotoHeaders(), "could not load servers");
-                new JSONObject(new String(data, StandardCharsets.UTF_8));
-                return bytes(200, "application/json", data);
-            }
-            case "/stream/source": {
-                String server = checkId(url.getQueryParameter("server"), "server");
-                JSONObject req = config.getJSONObject("server");
-                Map<String, String> h = kyotoHeaders();
-                JSONArray pairs = req.optJSONArray("headers");
-                if (pairs != null) for (int i = 0; i < pairs.length(); i++) {
-                    JSONArray p = pairs.optJSONArray(i);
-                    if (p != null && p.length() == 2) h.put(p.getString(0), p.getString(1));
-                }
-                byte[] data = getBytes(req.getString("url").replace("%id%", server), h, "could not load the video source");
-                String link = new JSONObject(new String(data, StandardCharsets.UTF_8)).optString("link", "");
-                if (!link.startsWith("https://")) throw new HttpError(502, "this server has no video right now — try another one");
-                return json(200, new JSONObject().put("url", relayPath(link)).toString());
-            }
+            case "/stream/servers":
+                return bytes(200, "application/json", servers(url.getQueryParameter("id"), url.getQueryParameter("episode")).getBytes(StandardCharsets.UTF_8));
+            case "/stream/source":
+                return json(200, new JSONObject().put("url", relayPath(link(url.getQueryParameter("id"), url.getQueryParameter("server")))).toString());
             default:
                 throw new HttpError(404, "not found");
         }
+    }
+
+    @Override
+    public String servers(String postId, String episodeId) throws Exception {
+        JSONObject config = config(postId);
+        String ep = checkId(episodeId, "episode");
+        byte[] data = getBytes(config.getString("servers").replace("%id%", ep), kyotoHeaders(), "could not load servers");
+        String body = new String(data, StandardCharsets.UTF_8);
+        new JSONObject(body); // validate
+        return body;
+    }
+
+    /** The HLS master playlist (on the video CDN) behind a server. */
+    @Override
+    public String link(String postId, String serverId) throws Exception {
+        JSONObject config = config(postId);
+        String server = checkId(serverId, "server");
+        JSONObject req = config.getJSONObject("server");
+        Map<String, String> h = kyotoHeaders();
+        JSONArray pairs = req.optJSONArray("headers");
+        if (pairs != null) for (int i = 0; i < pairs.length(); i++) {
+            JSONArray p = pairs.optJSONArray(i);
+            if (p != null && p.length() == 2) h.put(p.getString(0), p.getString(1));
+        }
+        byte[] data = getBytes(req.getString("url").replace("%id%", server), h, "could not load the video source");
+        String link = new JSONObject(new String(data, StandardCharsets.UTF_8)).optString("link", "");
+        if (!link.startsWith("https://")) throw new HttpError(502, "this server has no video right now — try another one");
+        return link;
     }
 
     private JSONObject config(String postId) throws Exception {
@@ -317,7 +334,7 @@ final class LocalServer {
         }
     }
 
-    private static String error(String message) {
+    static String error(String message) {
         try {
             return new JSONObject().put("error", message).toString();
         } catch (Exception e) {
@@ -325,7 +342,7 @@ final class LocalServer {
         }
     }
 
-    private static String reason(int status) {
+    static String reason(int status) {
         switch (status) {
             case 200: return "OK";
             case 206: return "Partial Content";
@@ -336,14 +353,14 @@ final class LocalServer {
         }
     }
 
-    private static WebResourceResponse bytes(int status, String type, byte[] body) {
+    static WebResourceResponse bytes(int status, String type, byte[] body) {
         Map<String, String> h = new HashMap<>();
         h.put("Cache-Control", "no-store");
         String mime = type.contains(";") ? type.substring(0, type.indexOf(';')).trim() : type;
         return new WebResourceResponse(mime, "utf-8", status, reason(status), h, new ByteArrayInputStream(body));
     }
 
-    private static WebResourceResponse json(int status, String body) {
+    static WebResourceResponse json(int status, String body) {
         return bytes(status, "application/json", body.getBytes(StandardCharsets.UTF_8));
     }
 }

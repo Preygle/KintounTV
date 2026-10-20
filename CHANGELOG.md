@@ -5,10 +5,18 @@ All notable changes to KintounTV. Versions follow [Semantic Versioning](https://
 
 ## 1.4.0 — 2026-10-20
 
+- **Downloads:** save one episode, a few, or a whole season (SUB or DUB, up to 1080p) from a title or
+  the player, and watch them without a connection. The new **Downloads** page shows progress and lets
+  you pause, resume, retry and delete. Downloads survive restarts and pick up where they stopped; on
+  Android they keep going in the background with a progress notification. A downloaded episode plays
+  from the device automatically; pick a server under the player to stream instead.
+- **Touch controls:** tap the middle of the video to play or pause; double-tap the left or right side to
+  go back or forward 10 seconds (each further tap adds 10 more); a single tap at the sides shows or
+  hides the controls.
 - **Timeline previews:** hover over the seek bar (Windows) or drag it (Android) to see the frame at
-  that point, Netflix-style. Frames come from the stream's own keyframe index, about 30 KB each, and
-  are kept for the episode so going back over the bar is instant. Streams or devices that can't make
-  previews show the time as before.
+  that point, Netflix-style. Streams or devices that can't make previews show the time as before.
+- The Android app icon no longer sits on a white plate (adaptive icon on charcoal).
+- The header shows icon-only navigation on mid-sized windows, so it always fits.
 
 ## 1.3.0 — 2026-10-19
 

@@ -32,6 +32,8 @@ cross-device sync.**
   keyboard shortcuts, and true fullscreen with controls that hide while you watch.
 - **Timeline previews.** Hover over the seek bar (or drag it on Android) to see the frame at that
   point before you jump.
+- **Downloads.** Save an episode, a few, or a whole season and watch offline, right in the app.
+- **Touch gestures.** Tap to pause, double-tap the sides to skip 10 seconds.
 - **Skips intros, recaps and credits** automatically, using community timings from
   [AniSkip](https://aniskip.com). Turn it on or off right under the player.
 - **Binge mode.** Next episode and auto-next keep you in fullscreen. If a server fails, the next

@@ -1,7 +1,8 @@
 // KintounTV desktop: a native Windows shell around the web app.
 //
 // The built SPA is embedded in the executable and served on a fixed loopback address together
-// with the /api catalog proxy (api.go) and the streaming endpoints (stream.go), then shown in a
+// with the /api catalog proxy (api.go), the streaming endpoints (stream.go) and downloads
+// (downloads.go), then shown in a
 // WebView2 window. The address is fixed so the page origin, and with it localStorage (My List,
 // watch progress), stays the same across launches. A second launch focuses the running window.
 package main
@@ -56,7 +57,9 @@ func main() {
 	host := listener.Addr().String()
 
 	web, _ := fs.Sub(embedded, "web")
-	go func() { _ = http.Serve(listener, newHandler(host, web)) }()
+	go func() {
+		_ = http.Serve(listener, newHandler(host, web, filepath.Join(localAppData(), appName, "Downloads")))
+	}()
 
 	dataDir := profileDir()
 	w := webview2.NewWithOptions(webview2.WebViewOptions{
@@ -89,16 +92,17 @@ func main() {
 	w.Run()
 }
 
-func newHandler(host string, web fs.FS) http.Handler {
+func newHandler(host string, web fs.FS, downloadsDir string) http.Handler {
 	cache := newAPICache()
 	streams := newStreamService()
+	downloads := newDownloader(downloadsDir, streams)
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		// Only answer requests addressed to our own origin (blocks DNS-rebinding pages)...
 		if r.Host != host {
 			http.Error(rw, "forbidden", http.StatusForbidden)
 			return
 		}
-		isData := strings.HasPrefix(r.URL.Path, "/api/") || strings.HasPrefix(r.URL.Path, "/stream/") || r.URL.Path == "/hls"
+		isData := strings.HasPrefix(r.URL.Path, "/api/") || strings.HasPrefix(r.URL.Path, "/stream/") || strings.HasPrefix(r.URL.Path, "/downloads/") || r.URL.Path == "/hls"
 		// ...and only let our own page use the data endpoints, so other sites open in a browser
 		// cannot use them as a relay.
 		if site := r.Header.Get("Sec-Fetch-Site"); isData && site != "" && site != "same-origin" && site != "none" {
@@ -115,6 +119,8 @@ func newHandler(host string, web fs.FS) http.Handler {
 			streams.serve(rw, r)
 		case r.URL.Path == "/hls":
 			serveHLS(rw, r)
+		case strings.HasPrefix(r.URL.Path, "/downloads/"):
+			downloads.serve(rw, r)
 		default:
 			serveStatic(rw, r, web)
 		}

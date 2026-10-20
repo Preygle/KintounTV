@@ -2,6 +2,7 @@
 <resources>
     <string name="app_name">KintounTV</string>
     <color name="bg">#FF0D0D12</color>
+    <color name="ic_launcher_background">#FF0B0B0D</color>
     <style name="AppTheme" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/bg</item>
         <item name="android:colorBackground">@color/bg</item>

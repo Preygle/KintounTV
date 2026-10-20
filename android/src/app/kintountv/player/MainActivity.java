@@ -5,6 +5,7 @@ import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
@@ -38,7 +39,22 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        server = new LocalServer(getAssets());
+        Downloads downloads = Downloads.get(this);
+        // Android 13+: the download progress notification needs permission; ask on the first download.
+        downloads.onFirstAdd = new Runnable() {
+            @Override
+            public void run() {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission("android.permission.POST_NOTIFICATIONS") != PackageManager.PERMISSION_GRANTED) {
+                            requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 1);
+                        }
+                    }
+                });
+            }
+        };
+        server = new LocalServer(getAssets(), downloads);
 
         web = new WebView(this);
         web.setBackgroundColor(Color.rgb(13, 13, 18));

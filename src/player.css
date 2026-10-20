@@ -481,3 +481,53 @@
 .seek-played {
   z-index: 2;
 }
+
+/* Touch: tap gestures on the picture (see onSurfaceTap). */
+.player-video {
+  touch-action: manipulation;
+}
+
+.player-seek-hint {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 38%;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  pointer-events: none;
+  animation: seek-hint 0.7s ease-out forwards;
+}
+
+.player-seek-hint.left {
+  left: 0;
+  border-radius: 0 50% 50% 0 / 0 50% 50% 0;
+  background: radial-gradient(circle at 30% 50%, rgb(255 255 255 / 0.18), transparent 70%);
+}
+
+.player-seek-hint.right {
+  right: 0;
+  border-radius: 50% 0 0 50% / 50% 0 0 50%;
+  background: radial-gradient(circle at 70% 50%, rgb(255 255 255 / 0.18), transparent 70%);
+}
+
+.player-seek-hint svg {
+  width: 34px;
+  height: 34px;
+}
+
+@keyframes seek-hint {
+  0%,
+  60% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}

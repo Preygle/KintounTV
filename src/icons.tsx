@@ -150,3 +150,13 @@ export const TrashIcon = () => (
     <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
   </svg>
 );
+export const DownloadIcon = () => (
+  <svg {...base}>
+    <path d="M12 3v12m0 0-5-5m5 5 5-5M4 19h16" />
+  </svg>
+);
+export const FolderIcon = () => (
+  <svg {...base}>
+    <path d="M3 6a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z" />
+  </svg>
+);

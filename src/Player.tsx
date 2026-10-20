@@ -369,9 +369,17 @@ export default function Player({ src, overlay, skip, startAt = 0, title, subtitl
     return () => window.removeEventListener("keydown", onKey);
   }, [togglePlay, seekBy, setVolume, toggleFullscreen, poke]);
 
-  // Single click toggles play, double click toggles fullscreen (without a play/pause flicker).
+  // Mouse: single click toggles play, double click toggles fullscreen (without a play/pause flicker).
+  // Touch has its own gestures (onSurfaceTap), so clicks synthesized from taps are ignored.
   const clickTimer = useRef<number>();
+  const touched = useRef(false);
+  const hiddenAtTouch = useRef(false); // read before the player's own pointerdown shows the controls
+  const onSurfacePointerDown = (e: React.PointerEvent) => {
+    touched.current = e.pointerType !== "mouse";
+    hiddenAtTouch.current = idle;
+  };
   const onSurfaceClick = () => {
+    if (touched.current) return;
     if (menu) {
       setMenu(null);
       return;
@@ -380,8 +388,52 @@ export default function Player({ src, overlay, skip, startAt = 0, title, subtitl
     clickTimer.current = window.setTimeout(togglePlay, 220);
   };
   const onSurfaceDoubleClick = () => {
+    if (touched.current) return;
     window.clearTimeout(clickTimer.current);
     toggleFullscreen();
+  };
+
+  // Touch: a tap in the middle plays/pauses; a double tap on the left or right third goes back or
+  // forward 10 s, and each further tap there adds another 10 s. A single tap at the sides shows or
+  // hides the controls.
+  const tapRef = useRef<{ at: number; side: "left" | "right" | null; streak: boolean }>({ at: 0, side: null, streak: false });
+  const tapTimer = useRef<number>();
+  const [seekHint, setSeekHint] = useState<{ side: "left" | "right"; seconds: number; key: number } | null>(null);
+  const hintTimer = useRef<number>();
+  const onSurfaceTap = (e: React.PointerEvent<HTMLVideoElement>) => {
+    if (e.pointerType === "mouse") return;
+    if (menu) {
+      setMenu(null);
+      return;
+    }
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / rect.width;
+    const side = x < 0.35 ? "left" : x > 0.65 ? "right" : null;
+    const now = performance.now();
+    const last = tapRef.current;
+    window.clearTimeout(tapTimer.current);
+    if (!side) {
+      tapRef.current = { at: now, side: null, streak: false };
+      togglePlay();
+      poke();
+      return;
+    }
+    const repeat = last.side === side && now - last.at < (last.streak ? 700 : 300);
+    tapRef.current = { at: now, side, streak: repeat };
+    if (repeat) {
+      const delta = side === "left" ? -10 : 10;
+      seekBy(delta);
+      window.clearTimeout(hintTimer.current);
+      setSeekHint((h) => ({ side, seconds: (h && h.side === side ? h.seconds : 0) + 10, key: now }));
+      hintTimer.current = window.setTimeout(() => setSeekHint(null), 700);
+      return;
+    }
+    // Wait to see whether a second tap follows before treating it as a single tap.
+    tapTimer.current = window.setTimeout(() => {
+      if (tapRef.current.at !== now) return;
+      if (hiddenAtTouch.current) poke();
+      else setIdle(true);
+    }, 300);
   };
 
   // ---- intro / recap / credits ------------------------------------------------------------------
@@ -493,7 +545,22 @@ export default function Player({ src, overlay, skip, startAt = 0, title, subtitl
       onPointerDown={poke}
       onPointerLeave={() => !paused && setIdle(true)}
     >
-      <video ref={videoRef} className="player-video" playsInline preload="auto" onClick={onSurfaceClick} onDoubleClick={onSurfaceDoubleClick} />
+      <video
+        ref={videoRef}
+        className="player-video"
+        playsInline
+        preload="auto"
+        onPointerDown={onSurfacePointerDown}
+        onPointerUp={onSurfaceTap}
+        onClick={onSurfaceClick}
+        onDoubleClick={onSurfaceDoubleClick}
+      />
+      {seekHint && (
+        <div key={seekHint.key} className={`player-seek-hint ${seekHint.side}`} aria-hidden="true">
+          {seekHint.side === "left" ? <Back10Icon /> : <Forward10Icon />}
+          <span>{seekHint.seconds} seconds</span>
+        </div>
+      )}
 
       {src && waiting && !paused && <div className="player-spinner" aria-label="Loading" />}
       {src && paused && !waiting && !overlay && (

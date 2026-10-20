@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter, Link, NavLink, Route, Routes, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import "@fontsource-variable/inter";
 import { Img } from "./components";
-import { BellIcon, BookmarkIcon, CalendarIcon, GridIcon, HomeIcon, SearchIcon } from "./icons";
+import { BellIcon, BookmarkIcon, CalendarIcon, DownloadIcon, GridIcon, HomeIcon, SearchIcon } from "./icons";
 import { clearNotifications, markAllRead, startNotifications, useNotifications } from "./notifications";
 import Home from "./pages/Home";
 import Categories from "./pages/Categories";
@@ -11,6 +11,7 @@ import CategoryPage from "./pages/CategoryPage";
 import Latest from "./pages/Latest";
 import Search from "./pages/Search";
 import MyList from "./pages/MyList";
+import Downloads from "./pages/Downloads";
 import PostPage from "./pages/PostPage";
 import Watch from "./pages/Watch";
 import Account from "./pages/Account";
@@ -24,6 +25,7 @@ const NAV = [
   { to: "/categories", label: "Categories", icon: <GridIcon /> },
   { to: "/latest", label: "Latest", icon: <CalendarIcon /> },
   { to: "/my-list", label: "My List", icon: <BookmarkIcon /> },
+  { to: "/downloads", label: "Downloads", icon: <DownloadIcon /> },
 ];
 
 function ScrollToTop() {
@@ -179,9 +181,9 @@ function App() {
         </Link>
         <nav className="topnav" aria-label="Main">
           {NAV.map((n) => (
-            <NavLink key={n.to} to={n.to} end={n.end}>
+            <NavLink key={n.to} to={n.to} end={n.end} title={n.label}>
               {n.icon}
-              {n.label}
+              <span className="topnav-label">{n.label}</span>
             </NavLink>
           ))}
         </nav>
@@ -199,6 +201,7 @@ function App() {
           <Route path="/latest" element={<Latest />} />
           <Route path="/search" element={<Search />} />
           <Route path="/my-list" element={<MyList />} />
+          <Route path="/downloads" element={<Downloads />} />
           <Route path="/post/:id" element={<PostPage />} />
           <Route path="/watch/:id" element={<Watch />} />
           <Route path="/account" element={<Account />} />

@@ -3,7 +3,9 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { api, watchApi, type Episode, type Server } from "../api";
 import { Spinner, Status } from "../components";
 import { useAsync } from "../hooks";
-import { BackIcon, NextIcon, PrevIcon } from "../icons";
+import DownloadDialog from "../DownloadDialog";
+import { downloadedEpisode, mediaUrl, useDownloads } from "../downloads";
+import { BackIcon, DownloadIcon, NextIcon, PrevIcon } from "../icons";
 import Player from "../Player";
 import { getProgress, saveProgress, setPlayerPrefs, setSeriesInfo, usePlayerPrefs, useProgress, type EpisodeRef } from "../progress";
 
@@ -29,7 +31,17 @@ export default function Watch() {
   const progress = useProgress();
   const post = useAsync(() => api.post(postId), [postId]);
   const episodes = useAsync(() => watchApi.episodes(postId), [postId]);
-  const list = episodes.data ?? [];
+  const downloads = useDownloads();
+  // Offline, the downloaded episodes stand in for the episode list.
+  const savedEpisodes = useMemo(() => {
+    const seen = new Set<string>();
+    return downloads.items
+      .filter((d) => d.postId === String(postId) && d.status === "done" && !seen.has(d.episodeId) && seen.add(d.episodeId))
+      .map((d): Episode => ({ id: d.episodeId, number: d.number, name: d.name || `Episode ${d.number}`, filler: false }))
+      .sort((a, b) => Number(a.number) - Number(b.number));
+  }, [downloads.items, postId]);
+  const list = episodes.data ?? (episodes.error ? savedEpisodes : []);
+  const [downloadOpen, setDownloadOpen] = useState(false);
 
   useEffect(() => {
     if (post.data) setSeriesInfo(postId, { title: post.data.title, poster: post.data.poster });
@@ -44,20 +56,25 @@ export default function Watch() {
   const [failed, setFailed] = useState<Set<number>>(new Set());
   const [playerError, setPlayerError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
+  const [streamInstead, setStreamInstead] = useState(false);
 
   useEffect(() => {
     setChosenServer(null);
     setFailed(new Set());
     setPlayerError(null);
+    setStreamInstead(false);
   }, [episode?.id]);
+
+  // A downloaded copy plays instead of a stream (and without a connection) unless a server is picked.
+  const saved = episode && !streamInstead ? downloadedEpisode(downloads.items, postId, episode.id, prefs.lang) : undefined;
 
   const serverList = servers.data ?? [];
   const serverIndex = chosenServer ?? pickServer(serverList, prefs.lang, failed);
   const server: Server | undefined = serverList[serverIndex];
 
   const source = useAsync(
-    () => (server ? watchApi.source(postId, server.id) : Promise.resolve(null)),
-    [postId, server?.id, serverIndex, attempt],
+    () => (server && !saved ? watchApi.source(postId, server.id) : Promise.resolve(null)),
+    [postId, server?.id, serverIndex, attempt, !!saved],
   );
 
   // Resume where this episode was left. Read when the player is (re)created (episode, server or
@@ -65,7 +82,7 @@ export default function Watch() {
   const startAt = useMemo(() => {
     const p = episode && getProgress(postId, episode.id);
     return p && p.t > 10 && (!p.d || p.t < p.d - 30) ? p.t : 0;
-  }, [postId, episode?.id, serverIndex, attempt]);
+  }, [postId, episode?.id, serverIndex, attempt, streamInstead]);
 
   const prev = index > 0 ? list[index - 1] : undefined;
   const next = index < list.length - 1 ? list[index + 1] : undefined;
@@ -89,6 +106,10 @@ export default function Watch() {
   const failOver = useCallback(
     (message: string) => {
       snapshot();
+      if (saved) {
+        setPlayerError(message);
+        return;
+      }
       const nextFailed = new Set(failed).add(serverIndex);
       const alternative = pickServer(serverList, prefs.lang, nextFailed);
       setFailed(nextFailed);
@@ -98,22 +119,24 @@ export default function Watch() {
         setPlayerError(message);
       }
     },
-    [failed, serverIndex, serverList, prefs.lang, chosenServer, snapshot],
+    [failed, serverIndex, serverList, prefs.lang, chosenServer, snapshot, saved],
   );
 
   // A server that fails to produce a link is skipped automatically, like a playback failure.
   useEffect(() => {
-    if (source.error && server) failOver(source.error);
+    if (source.error && server && !saved) failOver(source.error);
   }, [source.error]);
 
-  const title = post.data?.title ?? "";
+  const title = post.data?.title ?? saved?.title ?? downloads.items.find((d) => d.postId === String(postId))?.title ?? "";
   const loadingPlayer = episodes.loading || servers.loading || source.loading;
   const exhausted = !loadingPlayer && serverList.length > 0 && serverIndex < 0;
 
   // Loading and error states render inside the one Player instance, which stays mounted across
   // episodes and servers so fullscreen survives "Next" and auto-next.
   let overlay: React.ReactNode = null;
-  if (episodes.error) overlay = <Status message={episodes.error} onRetry={episodes.reload} />;
+  if (saved && playerError) overlay = <Status message={playerError} onRetry={() => setPlayerError(null)} />;
+  else if (saved) overlay = null;
+  else if (episodes.error && !list.length) overlay = <Status message={episodes.error} onRetry={episodes.reload} />;
   else if (!episodes.loading && list.length === 0) overlay = <Status message="No episodes are available for this title yet." />;
   else if (servers.error) overlay = <Status message={servers.error} onRetry={servers.reload} />;
   else if (!servers.loading && episode && serverList.length === 0) overlay = <Status message="No servers for this episode yet." />;
@@ -130,7 +153,7 @@ export default function Watch() {
     );
   else if (loadingPlayer || !source.data) overlay = <Spinner />;
   // A retry must reload even if the server hands back the same link (the relay ignores extra params).
-  const src = overlay || !source.data ? null : attempt ? `${source.data}&retry=${attempt}` : source.data;
+  const src = saved ? (overlay ? null : mediaUrl(saved)) : overlay || !source.data ? null : attempt ? `${source.data}&retry=${attempt}` : source.data;
 
   // AniSkip numbers episodes per season; AniLab continues numbering across seasons (S2 may start at 171).
   const firstNumber = Number(list[0]?.number);
@@ -145,7 +168,7 @@ export default function Watch() {
       startAt={startAt}
       title={title}
       subtitle={episode && episodeLabel(episode)}
-      lang={server?.lang}
+      lang={saved?.lang ?? server?.lang}
       onProgress={(t, d, thumb) => episode && saveProgress(postId, toRef(episode), t, d, nextRef, thumb)}
       onEnded={() => prefs.autoNext && goTo(next)}
       onNext={next && (() => goTo(next))}
@@ -178,14 +201,23 @@ export default function Watch() {
           </button>
         </div>
         <div className="server-list" role="radiogroup" aria-label="Server">
+          {episode && (saved || (streamInstead && downloadedEpisode(downloads.items, postId, episode.id))) && (
+            <button role="radio" aria-checked={!!saved} className={`chip ${saved ? "active" : ""}`} onClick={() => setStreamInstead(false)} title="Play the copy saved on this device">
+              <DownloadIcon /> Downloaded{saved ? ` · ${saved.lang.toUpperCase()} ${saved.height ? `${saved.height}p` : ""}` : ""}
+            </button>
+          )}
           {serverList.map((s, i) => (
             <button
               key={`${s.id}-${i}`}
               role="radio"
-              aria-checked={i === serverIndex}
-              className={`chip ${i === serverIndex ? "active" : ""} ${failed.has(i) ? "failed" : ""}`}
+              aria-checked={!saved && i === serverIndex}
+              className={`chip ${!saved && i === serverIndex ? "active" : ""} ${failed.has(i) ? "failed" : ""}`}
               onClick={() => {
-                const retrying = i === serverIndex;
+                if (saved) {
+                  snapshot();
+                  setStreamInstead(true);
+                }
+                const retrying = i === serverIndex && !saved;
                 if (retrying && !playerError && !failed.has(i)) return;
                 snapshot();
                 setChosenServer(i);
@@ -204,6 +236,11 @@ export default function Watch() {
           ))}
         </div>
         <div className="toggles">
+          {downloads.supported && list.length > 0 && !episodes.error && (
+            <button className="chip" onClick={() => setDownloadOpen(true)}>
+              <DownloadIcon /> Download
+            </button>
+          )}
           <label className="toggle" title="Skip intros, recaps and credits automatically when timings are known (otherwise a Skip button is shown)">
             <input type="checkbox" checked={prefs.autoSkip} onChange={(e) => setPlayerPrefs({ autoSkip: e.target.checked })} />
             Auto-skip intro
@@ -214,6 +251,17 @@ export default function Watch() {
           </label>
         </div>
       </div>
+
+      {downloadOpen && (
+        <DownloadDialog
+          postId={postId}
+          title={title}
+          poster={post.data?.poster ?? ""}
+          episodes={list}
+          initial={episode ? [episode.id] : []}
+          onClose={() => setDownloadOpen(false)}
+        />
+      )}
 
       {list.length > 0 && <EpisodeBrowser postId={postId} list={list} current={episode} onPick={goTo} progress={progress.episodes} />}
     </div>

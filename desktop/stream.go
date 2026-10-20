@@ -12,6 +12,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -125,11 +126,11 @@ func (s *streamService) serve(rw http.ResponseWriter, r *http.Request) {
 	)
 	switch r.URL.Path {
 	case "/stream/episodes":
-		body, err = s.listEpisodes(r, q.Get("id"))
+		body, err = s.listEpisodes(r.Context(), q.Get("id"))
 	case "/stream/servers":
-		body, err = s.listServers(r, q.Get("id"), q.Get("episode"))
+		body, err = s.listServers(r.Context(), q.Get("id"), q.Get("episode"))
 	case "/stream/source":
-		body, err = s.source(r, q.Get("id"), q.Get("server"))
+		body, err = s.source(r.Context(), q.Get("id"), q.Get("server"))
 	default:
 		http.NotFound(rw, r)
 		return
@@ -166,14 +167,14 @@ func badRequest(field string) error {
 	return &httpError{http.StatusBadRequest, "invalid " + field}
 }
 
-func (s *streamService) config(r *http.Request, postID string) (postConfig, error) {
+func (s *streamService) config(ctx context.Context, postID string) (postConfig, error) {
 	if !idPattern.MatchString(postID) {
 		return postConfig{}, badRequest("id")
 	}
 	if c, ok := s.configs.get(postID); ok {
 		return c, nil
 	}
-	data, err := fetchBytes(r, kyotoBase+"post?id="+url.QueryEscape(postID), map[string]string{"User-Agent": kyotoUserAgent, "Accept": "application/json"})
+	data, err := fetchBytes(ctx, kyotoBase+"post?id="+url.QueryEscape(postID), map[string]string{"User-Agent": kyotoUserAgent, "Accept": "application/json"})
 	if err != nil {
 		return postConfig{}, fmt.Errorf("streaming service unreachable: %w", err)
 	}
@@ -185,15 +186,15 @@ func (s *streamService) config(r *http.Request, postID string) (postConfig, erro
 	return c, nil
 }
 
-func (s *streamService) listEpisodes(r *http.Request, postID string) ([]byte, error) {
-	c, err := s.config(r, postID)
+func (s *streamService) listEpisodes(ctx context.Context, postID string) ([]byte, error) {
+	c, err := s.config(ctx, postID)
 	if err != nil {
 		return nil, err
 	}
 	if cached, ok := s.episodes.get(postID); ok {
 		return cached, nil
 	}
-	data, err := fetchBytes(r, c.Episodes, map[string]string{"User-Agent": kyotoUserAgent, "Accept": "application/json"})
+	data, err := fetchBytes(ctx, c.Episodes, map[string]string{"User-Agent": kyotoUserAgent, "Accept": "application/json"})
 	if err != nil {
 		return nil, fmt.Errorf("could not load episodes: %w", err)
 	}
@@ -204,15 +205,15 @@ func (s *streamService) listEpisodes(r *http.Request, postID string) ([]byte, er
 	return data, nil
 }
 
-func (s *streamService) listServers(r *http.Request, postID, episodeID string) ([]byte, error) {
+func (s *streamService) listServers(ctx context.Context, postID, episodeID string) ([]byte, error) {
 	if !idPattern.MatchString(episodeID) {
 		return nil, badRequest("episode")
 	}
-	c, err := s.config(r, postID)
+	c, err := s.config(ctx, postID)
 	if err != nil {
 		return nil, err
 	}
-	data, err := fetchBytes(r, strings.ReplaceAll(c.Servers, "%id%", episodeID), map[string]string{"User-Agent": kyotoUserAgent, "Accept": "application/json"})
+	data, err := fetchBytes(ctx, strings.ReplaceAll(c.Servers, "%id%", episodeID), map[string]string{"User-Agent": kyotoUserAgent, "Accept": "application/json"})
 	if err != nil {
 		return nil, fmt.Errorf("could not load servers: %w", err)
 	}
@@ -222,13 +223,22 @@ func (s *streamService) listServers(r *http.Request, postID, episodeID string) (
 	return data, nil
 }
 
-func (s *streamService) source(r *http.Request, postID, serverID string) ([]byte, error) {
-	if !idPattern.MatchString(serverID) {
-		return nil, badRequest("server")
-	}
-	c, err := s.config(r, postID)
+func (s *streamService) source(ctx context.Context, postID, serverID string) ([]byte, error) {
+	link, err := s.link(ctx, postID, serverID)
 	if err != nil {
 		return nil, err
+	}
+	return json.Marshal(map[string]string{"url": relayPath(link)})
+}
+
+// link resolves a server to its HLS master playlist on the video CDN.
+func (s *streamService) link(ctx context.Context, postID, serverID string) (string, error) {
+	if !idPattern.MatchString(serverID) {
+		return "", badRequest("server")
+	}
+	c, err := s.config(ctx, postID)
+	if err != nil {
+		return "", err
 	}
 	headers := map[string]string{"User-Agent": kyotoUserAgent, "Accept": "application/json"}
 	for _, h := range c.Server.Headers {
@@ -236,25 +246,25 @@ func (s *streamService) source(r *http.Request, postID, serverID string) ([]byte
 			headers[h[0]] = h[1]
 		}
 	}
-	data, err := fetchBytes(r, strings.ReplaceAll(c.Server.URL, "%id%", serverID), headers)
+	data, err := fetchBytes(ctx, strings.ReplaceAll(c.Server.URL, "%id%", serverID), headers)
 	if err != nil {
-		return nil, fmt.Errorf("could not load the video source: %w", err)
+		return "", fmt.Errorf("could not load the video source: %w", err)
 	}
 	var iframe struct {
 		Link string `json:"link"`
 	}
 	if err := json.Unmarshal(data, &iframe); err != nil || iframe.Link == "" {
-		return nil, errors.New("this server has no video right now — try another one")
+		return "", errors.New("this server has no video right now — try another one")
 	}
 	link, err := url.Parse(iframe.Link)
 	if err != nil || link.Scheme != "https" {
-		return nil, errors.New("unsupported video link")
+		return "", errors.New("unsupported video link")
 	}
-	return json.Marshal(map[string]string{"url": relayPath(link.String())})
+	return link.String(), nil
 }
 
-func fetchBytes(r *http.Request, target string, headers map[string]string) ([]byte, error) {
-	req, err := http.NewRequestWithContext(r.Context(), http.MethodGet, target, nil)
+func fetchBytes(ctx context.Context, target string, headers map[string]string) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, target, nil)
 	if err != nil {
 		return nil, err
 	}
