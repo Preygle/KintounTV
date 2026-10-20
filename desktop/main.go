@@ -27,10 +27,18 @@ import (
 //go:embed all:web
 var embedded embed.FS
 
-const (
-	appName       = "KintounTV"
-	preferredAddr = "127.0.0.1:47613"
-)
+const appName = "KintounTV"
+
+// preferredAddr is fixed so the page origin, and with it the saved data, stays the same.
+// KINTOUN_ADDR / KINTOUN_PROFILE move a second copy out of the way of the installed app (testing).
+var preferredAddr = envOr("KINTOUN_ADDR", "127.0.0.1:47613")
+
+func envOr(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
+}
 
 var (
 	window   webview2.WebView
@@ -41,8 +49,18 @@ func main() {
 	// The Go side only relays data; keep its heap small and let WebView2 have the memory.
 	debug.SetMemoryLimit(96 << 20)
 
-	listener, err := net.Listen("tcp", preferredAddr)
-	if err != nil {
+	var listener net.Listener
+	listen := func() (err error) {
+		listener, err = net.Listen("tcp", preferredAddr)
+		return err
+	}
+	waitForPreviousExit(listen) // just updated: the previous version may still be closing
+	if listener == nil {
+		listen()
+	}
+	go removePreviousExe()
+	var err error
+	if listener == nil {
 		if focusRunningInstance() {
 			return
 		}
@@ -61,7 +79,7 @@ func main() {
 		_ = http.Serve(listener, newHandler(host, web, filepath.Join(localAppData(), appName, "Downloads")))
 	}()
 
-	dataDir := profileDir()
+	dataDir := envOr("KINTOUN_PROFILE", profileDir())
 	w := webview2.NewWithOptions(webview2.WebViewOptions{
 		Debug:     false,
 		AutoFocus: true,
@@ -96,13 +114,14 @@ func newHandler(host string, web fs.FS, downloadsDir string) http.Handler {
 	cache := newAPICache()
 	streams := newStreamService()
 	downloads := newDownloader(downloadsDir, streams)
+	updates := newUpdater()
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		// Only answer requests addressed to our own origin (blocks DNS-rebinding pages)...
 		if r.Host != host {
 			http.Error(rw, "forbidden", http.StatusForbidden)
 			return
 		}
-		isData := strings.HasPrefix(r.URL.Path, "/api/") || strings.HasPrefix(r.URL.Path, "/stream/") || strings.HasPrefix(r.URL.Path, "/downloads/") || strings.HasPrefix(r.URL.Path, "/skips/") || r.URL.Path == "/hls"
+		isData := strings.HasPrefix(r.URL.Path, "/api/") || strings.HasPrefix(r.URL.Path, "/stream/") || strings.HasPrefix(r.URL.Path, "/downloads/") || strings.HasPrefix(r.URL.Path, "/skips/") || strings.HasPrefix(r.URL.Path, "/update/") || r.URL.Path == "/hls"
 		// ...and only let our own page use the data endpoints, so other sites open in a browser
 		// cannot use them as a relay.
 		if site := r.Header.Get("Sec-Fetch-Site"); isData && site != "" && site != "same-origin" && site != "none" {
@@ -119,6 +138,8 @@ func newHandler(host string, web fs.FS, downloadsDir string) http.Handler {
 			streams.serve(rw, r)
 		case r.URL.Path == "/hls":
 			serveHLS(rw, r)
+		case strings.HasPrefix(r.URL.Path, "/update/"):
+			updates.serve(rw, r)
 		case r.URL.Path == "/skips/introdb":
 			serveIntroDB(rw, r)
 		case strings.HasPrefix(r.URL.Path, "/downloads/"):

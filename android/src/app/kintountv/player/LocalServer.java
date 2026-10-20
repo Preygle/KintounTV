@@ -41,6 +41,7 @@ final class LocalServer implements Downloads.Resolver {
 
     private final AssetManager assets;
     private final Downloads downloads;
+    private final Updater updater;
     private final Map<String, Cached> cache = new LinkedHashMap<String, Cached>(64, 0.75f, true) {
         @Override
         protected boolean removeEldestEntry(Map.Entry<String, Cached> eldest) {
@@ -60,9 +61,10 @@ final class LocalServer implements Downloads.Resolver {
         }
     }
 
-    LocalServer(AssetManager assets, Downloads downloads) {
+    LocalServer(AssetManager assets, Downloads downloads, Updater updater) {
         this.assets = assets;
         this.downloads = downloads;
+        this.updater = updater;
         downloads.setResolver(this);
     }
 
@@ -74,6 +76,7 @@ final class LocalServer implements Downloads.Resolver {
             if (path.equals("/hls")) return hls(url.getQueryParameter("u"), headers);
             if (path.startsWith("/downloads/")) return downloads.handle(path, url, headers);
             if (path.equals("/skips/introdb")) return introDB(url);
+            if (path.startsWith("/update/")) return updater.handle(path, url);
             return asset(path);
         } catch (HttpError e) {
             return json(e.status, error(e.getMessage()));

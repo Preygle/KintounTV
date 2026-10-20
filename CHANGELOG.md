@@ -3,6 +3,18 @@
 All notable changes to KintounTV. Versions follow [Semantic Versioning](https://semver.org);
 `npm run release` publishes the section matching the version in `package.json`.
 
+## 1.4.2 — 2026-10-20
+
+- **Update from inside the app:** KintounTV checks GitHub for a new release and shows "Update now".
+  Windows downloads the new version, checks it against the release's SHA-256 checksums, swaps it in
+  and restarts; Android downloads and checks the APK and opens Android's installer to confirm. The
+  version and a "Check for updates" button are on the Account page. (This version still has to be
+  installed by hand; later ones can be updated in the app.)
+- **More intro, recap and credits timings:** when AniSkip has none for an episode, TheIntroDB and
+  IntroDB fill in. In a sample of 146 titles, episodes with skip times went from about 40% to 60%
+  (per show). Their times come from other releases, so they show a Skip button, and skip
+  automatically only when both databases agree.
+
 ## 1.4.1 — 2026-10-20
 
 - **Fast sync** (on by default; switch it on the Account page, it applies to every device on the

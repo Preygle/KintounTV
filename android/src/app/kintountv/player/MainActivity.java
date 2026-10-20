@@ -54,7 +54,7 @@ public class MainActivity extends Activity {
                 });
             }
         };
-        server = new LocalServer(getAssets(), downloads);
+        server = new LocalServer(getAssets(), downloads, Updater.get(this));
 
         web = new WebView(this);
         web.setBackgroundColor(Color.rgb(13, 13, 18));

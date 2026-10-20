@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { PageHeader } from "../components";
 import { sendPasswordReset, setFastSync, signIn, signOut, syncConfigured, syncNow, useSync } from "../sync";
+import { APP_VERSION, checkForUpdate, installLabel, installUpdate, isNewer, RELEASES_PAGE, useUpdates } from "../updates";
 
 function ago(t?: number) {
   if (!t) return "not yet";
@@ -96,6 +97,60 @@ function SignInForm() {
   );
 }
 
+/** The installed version, update check and in-app update. */
+function AppCard() {
+  const u = useUpdates();
+  const newer = isNewer(u.latest) ? u.latest : null;
+  const busy = installLabel(u.install);
+  // The release notes' first lines (Markdown bullets), shown as plain text.
+  const notes = (newer?.notes ?? "")
+    .split("\n")
+    .map((l) => l.replace(/^[-*]\s+/, "").replace(/\*\*/g, "").trim())
+    .filter((l) => l && !l.startsWith("#") && !l.startsWith("|") && !/^sha|^`/i.test(l))
+    .slice(0, 6);
+  return (
+    <div className="account-card" id="updates">
+      <h2>App</h2>
+      <p className="sync-line">
+        KintounTV {APP_VERSION}
+        {newer ? ` · version ${newer.version} is available` : u.checkedAt ? ` · up to date (checked ${ago(u.checkedAt)})` : ""}
+      </p>
+      {newer && notes.length > 0 && (
+        <ul className="update-notes">
+          {notes.map((n) => (
+            <li key={n}>{n}</li>
+          ))}
+        </ul>
+      )}
+      {busy && <p className="sync-line">{busy}</p>}
+      {u.install.state === "error" && <p className="sync-line error">{u.install.error}</p>}
+      {u.checkError && <p className="sync-line error">{u.checkError}</p>}
+      <div className="actions left">
+        {newer && u.installable && (
+          <button className="btn primary" onClick={() => void installUpdate()} disabled={!!busy}>
+            Update to {newer.version}
+          </button>
+        )}
+        {newer && u.installable === false && (
+          <a className="btn primary" href={RELEASES_PAGE} target="_blank" rel="noreferrer">
+            Download {newer.version}
+          </a>
+        )}
+        <button className="btn" onClick={() => void checkForUpdate()} disabled={u.checking || !!busy}>
+          {u.checking ? "Checking…" : "Check for updates"}
+        </button>
+      </div>
+      {u.installable && (
+        <p className="account-note">
+          {u.install.platform === "android"
+            ? "Updates are downloaded from the official GitHub release and checked before Android asks you to confirm. The first time, Android asks you to allow installs from KintounTV."
+            : "Updates are downloaded from the official GitHub release, checked, and installed in place; the app restarts on the new version. Your list, history and sign-in stay."}
+        </p>
+      )}
+    </div>
+  );
+}
+
 export default function Account() {
   const sync = useSync();
   const [, tick] = useState(0);
@@ -109,6 +164,9 @@ export default function Account() {
       <>
         <PageHeader title="Account" />
         <p className="status">Sync isn't set up in this build (missing Firebase config — see README, "Sync").</p>
+        <section className="account">
+          <AppCard />
+        </section>
       </>
     );
   }
@@ -151,6 +209,7 @@ export default function Account() {
         ) : (
           <SignInForm />
         )}
+        <AppCard />
       </section>
     </>
   );

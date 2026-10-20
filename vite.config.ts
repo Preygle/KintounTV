@@ -2,10 +2,13 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { UPSTREAM_BASE, UPSTREAM_HEADERS } from "./upstream.mjs";
 import { handleApiList, handleStream } from "./stream.mjs";
+import pkg from "./package.json";
 
 const upstream = new URL(UPSTREAM_BASE);
 
 export default defineConfig({
+  // The running app's version, compared with the latest GitHub release (src/updates.ts).
+  define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   plugins: [
     react(),
     {

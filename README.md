@@ -34,8 +34,9 @@ cross-device sync.**
   point before you jump.
 - **Downloads.** Save an episode, a few, or a whole season and watch offline, right in the app.
 - **Touch gestures.** Tap to pause, double-tap the sides to skip 10 seconds.
+- **Updates itself.** A banner offers new versions; Windows installs and restarts, Android opens its installer.
 - **Skips intros, recaps and credits** automatically, using community timings from
-  [AniSkip](https://aniskip.com). Turn it on or off right under the player.
+  [AniSkip](https://aniskip.com), with [TheIntroDB](https://theintrodb.org) and [IntroDB](https://introdb.app) as fallbacks. Turn it on or off right under the player.
 - **Binge mode.** Next episode and auto-next keep you in fullscreen. If a server fails, the next
   SUB/DUB server takes over automatically.
 - **Watch order at a glance.** Every franchise as a flow chart: seasons in order with arrows, and

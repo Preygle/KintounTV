@@ -2548,3 +2548,71 @@ img {
   color: var(--text);
   font-size: 15px;
 }
+
+/* ---- updates -------------------------------------------------------------------------------- */
+.update-banner {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  margin: 16px var(--gutter) 0;
+  padding: 10px 10px 10px 16px;
+  overflow: hidden;
+  border: 1px solid rgb(245 166 35 / 0.35);
+  border-radius: 12px;
+  background: var(--accent-soft);
+  font-size: 14px;
+}
+
+.update-banner > svg {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  color: var(--accent);
+}
+
+.update-banner > span:first-of-type {
+  flex: 1;
+  min-width: 180px;
+}
+
+.update-more {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.update-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: rgb(255 255 255 / 0.08);
+}
+
+.update-progress span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.3s;
+}
+
+.btn.small {
+  height: 34px;
+  padding: 0 14px;
+  font-size: 13px;
+}
+
+.update-notes {
+  margin: 0 0 14px;
+  padding-left: 20px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.account + .account-card,
+.account .account-card + .account-card {
+  margin-top: 20px;
+}

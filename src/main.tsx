@@ -16,6 +16,8 @@ import PostPage from "./pages/PostPage";
 import Watch from "./pages/Watch";
 import Account from "./pages/Account";
 import { syncConfigured, useSync } from "./sync";
+import UpdateBanner from "./UpdateBanner";
+import { startUpdateChecks } from "./updates";
 import "./styles.css";
 import "./player.css";
 import "./franchise.css";
@@ -194,6 +196,7 @@ function App() {
         </div>
       </header>
       <main className="content">
+        <UpdateBanner />
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/categories" element={<Categories />} />
@@ -223,6 +226,7 @@ function App() {
 // A reload while fullscreen skips the player's cleanup; make sure the desktop window is restored.
 window.kintounSetFullscreen?.(false).catch(() => {});
 startNotifications();
+startUpdateChecks();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
