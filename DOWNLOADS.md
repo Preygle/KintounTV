@@ -1,7 +1,7 @@
 # Download stats
 
 Download counts for every [KintounTV release](https://github.com/Preygle/KintounTV/releases), recorded every 6 hours
-by the [Download stats workflow](https://github.com/Preygle/KintounTV/actions/workflows/download-stats.yml). As of 2026-10-20.
+by the [Download stats workflow](https://github.com/Preygle/KintounTV/actions/workflows/download-stats.yml). As of 2026-10-21.
 
 ## Totals
 
@@ -29,6 +29,7 @@ by the [Download stats workflow](https://github.com/Preygle/KintounTV/actions/wo
 
 | Date | Windows | Android | Total |
 | --- | ---: | ---: | ---: |
+| 2026-10-21 | 2 | 12 | 14 |
 | 2026-10-20 | 2 | 12 | 14 |
 | 2026-10-19 | 1 | 10 | 11 |
 | 2026-10-18 | 1 | 3 | 4 |
