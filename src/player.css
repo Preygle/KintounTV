@@ -99,10 +99,10 @@
   background: var(--accent);
 }
 
+/* The icon's triangle is already drawn optically centred in its box, so no extra nudge. */
 .player-bigplay svg {
   width: 34px;
   height: 34px;
-  margin-left: 4px;
 }
 
 .player-controls {

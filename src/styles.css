@@ -2616,3 +2616,32 @@ img {
 .account .account-card + .account-card {
   margin-top: 20px;
 }
+
+/* Phones: the servers get a row of their own and scroll sideways instead of stacking. */
+@media (max-width: 760px) {
+  .player-bar {
+    gap: 12px;
+  }
+
+  .server-list {
+    order: 1;
+    flex: 1 1 100%;
+    flex-wrap: nowrap;
+    margin: 0 calc(-1 * var(--gutter));
+    padding: 2px var(--gutter);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .server-list::-webkit-scrollbar {
+    display: none;
+  }
+
+  .server-list .chip {
+    flex: none;
+  }
+
+  .toggles {
+    order: 2;
+  }
+}

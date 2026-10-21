@@ -3,6 +3,15 @@
 All notable changes to KintounTV. Versions follow [Semantic Versioning](https://semver.org);
 `npm run release` publishes the section matching the version in `package.json`.
 
+## 1.4.3 — 2026-10-22
+
+- **Smoother touch controls:** only real taps count — swipes, long presses, two-finger touches and
+  two taps far apart no longer skip 10 seconds or pause by accident; after a double-tap skip, a
+  tap a moment later just shows the controls instead of skipping again; a double tap never toggles
+  fullscreen on a phone.
+- The play button's icon is centred in its circle.
+- On phones the server buttons sit side by side in one row you can swipe, instead of stacking.
+
 ## 1.4.2 — 2026-10-20
 
 - **Update from inside the app:** KintounTV checks GitHub for a new release and shows "Update now".

@@ -374,9 +374,14 @@ export default function Player({ src, overlay, skip, startAt = 0, title, subtitl
   const clickTimer = useRef<number>();
   const touched = useRef(false);
   const hiddenAtTouch = useRef(false); // read before the player's own pointerdown shows the controls
+  // The touch currently down: only a short, still, single-finger touch counts as a tap.
+  const touchDown = useRef<{ id: number; x: number; y: number; at: number; fingers: number } | null>(null);
   const onSurfacePointerDown = (e: React.PointerEvent) => {
     touched.current = e.pointerType !== "mouse";
+    if (e.pointerType === "mouse") return;
     hiddenAtTouch.current = idle;
+    const fingers = (touchDown.current?.fingers ?? 0) + 1;
+    touchDown.current = { id: e.pointerId, x: e.clientX, y: e.clientY, at: performance.now(), fingers };
   };
   const onSurfaceClick = () => {
     if (touched.current) return;
@@ -388,20 +393,30 @@ export default function Player({ src, overlay, skip, startAt = 0, title, subtitl
     clickTimer.current = window.setTimeout(togglePlay, 220);
   };
   const onSurfaceDoubleClick = () => {
-    if (touched.current) return;
+    // Phones double-tap to seek; fullscreen there is the button only.
+    if (touched.current || window.matchMedia("(hover: none)").matches) return;
     window.clearTimeout(clickTimer.current);
     toggleFullscreen();
   };
 
   // Touch: a tap in the middle plays/pauses; a double tap on the left or right third goes back or
-  // forward 10 s, and each further tap there adds another 10 s. A single tap at the sides shows or
-  // hides the controls.
-  const tapRef = useRef<{ at: number; side: "left" | "right" | null; streak: boolean }>({ at: 0, side: null, streak: false });
+  // forward 10 s, and each further quick tap there adds another 10 s. A single tap at the sides shows
+  // or hides the controls. Drags, long presses and two-finger touches are not taps.
+  const TAP_SLOP = 12; // px a finger may move and still tap
+  const TAP_HOLD = 350; // ms
+  const DOUBLE_GAP = 280; // ms between the two taps of a double tap
+  const DOUBLE_DIST = 70; // px between them
+  const STREAK_GAP = 500; // ms for each further tap to add 10 s
+  const tapRef = useRef<{ at: number; x: number; y: number; side: "left" | "right" | null; streak: boolean }>({ at: 0, x: 0, y: 0, side: null, streak: false });
   const tapTimer = useRef<number>();
   const [seekHint, setSeekHint] = useState<{ side: "left" | "right"; seconds: number; key: number } | null>(null);
   const hintTimer = useRef<number>();
   const onSurfaceTap = (e: React.PointerEvent<HTMLVideoElement>) => {
     if (e.pointerType === "mouse") return;
+    const down = touchDown.current;
+    touchDown.current = null;
+    if (!down || down.id !== e.pointerId || down.fingers > 1) return;
+    if (Math.hypot(e.clientX - down.x, e.clientY - down.y) > TAP_SLOP || performance.now() - down.at > TAP_HOLD) return;
     if (menu) {
       setMenu(null);
       return;
@@ -413,13 +428,14 @@ export default function Player({ src, overlay, skip, startAt = 0, title, subtitl
     const last = tapRef.current;
     window.clearTimeout(tapTimer.current);
     if (!side) {
-      tapRef.current = { at: now, side: null, streak: false };
+      tapRef.current = { at: now, x: e.clientX, y: e.clientY, side: null, streak: false };
       togglePlay();
       poke();
       return;
     }
-    const repeat = last.side === side && now - last.at < (last.streak ? 700 : 300);
-    tapRef.current = { at: now, side, streak: repeat };
+    const near = Math.hypot(e.clientX - last.x, e.clientY - last.y) < (last.streak ? DOUBLE_DIST * 2 : DOUBLE_DIST);
+    const repeat = last.side === side && near && now - last.at < (last.streak ? STREAK_GAP : DOUBLE_GAP);
+    tapRef.current = { at: now, x: e.clientX, y: e.clientY, side, streak: repeat };
     if (repeat) {
       const delta = side === "left" ? -10 : 10;
       seekBy(delta);
@@ -433,7 +449,7 @@ export default function Player({ src, overlay, skip, startAt = 0, title, subtitl
       if (tapRef.current.at !== now) return;
       if (hiddenAtTouch.current) poke();
       else setIdle(true);
-    }, 300);
+    }, DOUBLE_GAP);
   };
 
   // ---- intro / recap / credits ------------------------------------------------------------------
@@ -552,6 +568,7 @@ export default function Player({ src, overlay, skip, startAt = 0, title, subtitl
         preload="auto"
         onPointerDown={onSurfacePointerDown}
         onPointerUp={onSurfaceTap}
+        onPointerCancel={() => (touchDown.current = null)}
         onClick={onSurfaceClick}
         onDoubleClick={onSurfaceDoubleClick}
       />
