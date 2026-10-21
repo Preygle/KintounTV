@@ -84,7 +84,33 @@ final class Updater {
         this.error = error;
     }
 
+    private static final Pattern RELEASE_TAG = Pattern.compile("/releases/tag/v(\\d+\\.\\d+\\.\\d+)$");
+
+    /**
+     * The latest release's version, from where GitHub's releases/latest page redirects. The page's
+     * own check uses GitHub's API, which allows 60 requests an hour per address; shared networks
+     * run out of those.
+     */
+    private static String latestVersion() throws IOException {
+        HttpURLConnection c = (HttpURLConnection) new java.net.URL("https://github.com/Preygle/KintounTV/releases/latest").openConnection();
+        c.setInstanceFollowRedirects(false);
+        c.setConnectTimeout(10000);
+        c.setReadTimeout(20000);
+        c.setRequestProperty("User-Agent", LocalServer.BROWSER_UA);
+        try {
+            String location = c.getHeaderField("Location");
+            java.util.regex.Matcher m = RELEASE_TAG.matcher(location == null ? "" : location);
+            if (!m.find()) throw new IOException("no release found (HTTP " + c.getResponseCode() + ")");
+            return m.group(1);
+        } finally {
+            c.disconnect();
+        }
+    }
+
     WebResourceResponse handle(String path, Uri url) throws Exception {
+        if (path.equals("/update/latest")) {
+            return LocalServer.json(200, new JSONObject().put("version", latestVersion()).toString());
+        }
         if (path.equals("/update/start")) {
             String v = url.getQueryParameter("version");
             if (v == null || !VERSION.matcher(v).matches()) return LocalServer.json(400, LocalServer.error("invalid version"));

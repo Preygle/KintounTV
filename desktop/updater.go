@@ -6,6 +6,7 @@ package main
 //	                                    checks it against the release's SHA256SUMS.txt, swaps it in for
 //	                                    the running exe and restarts on it
 //	GET /update/status               -> {state, progress, error, version, platform}
+//	GET /update/latest               -> {version} of the latest release (see latestVersion)
 //
 // Only this repository's release files are fetched (the page passes a version, never a URL), and a
 // file whose checksum doesn't match is thrown away. Windows lets a running exe be renamed but not
@@ -47,7 +48,7 @@ type updater struct {
 	err      string
 	version  string
 
-	base    string                  // release download base; replaced in tests
+	base    string                    // release download base; replaced in tests
 	install func(newExe string) error // swaps in the new exe and restarts; replaced in tests
 }
 
@@ -234,8 +235,46 @@ func removePreviousExe() {
 	}
 }
 
+var releaseTag = regexp.MustCompile(`/releases/tag/v(\d+\.\d+\.\d+)$`)
+
+// latestVersion reads the latest release from where GitHub's releases/latest page redirects. The
+// page's own check uses GitHub's API, which allows 60 requests an hour per address; shared networks
+// (campus, office) run out of those.
+func latestVersion(ctx context.Context) (string, error) {
+	client := &http.Client{
+		Transport:     streamClient.Transport,
+		Timeout:       20 * time.Second,
+		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://github.com/Preygle/KintounTV/releases/latest", nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("User-Agent", browserUA)
+	res, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	res.Body.Close()
+	m := releaseTag.FindStringSubmatch(res.Header.Get("Location"))
+	if m == nil {
+		return "", fmt.Errorf("no release found (HTTP %d)", res.StatusCode)
+	}
+	return m[1], nil
+}
+
 func (u *updater) serve(rw http.ResponseWriter, r *http.Request) {
 	switch r.URL.Path {
+	case "/update/latest":
+		v, err := latestVersion(r.Context())
+		if err != nil {
+			writeJSONError(rw, err)
+			return
+		}
+		rw.Header().Set("Content-Type", "application/json")
+		rw.Header().Set("Cache-Control", "no-store")
+		json.NewEncoder(rw).Encode(map[string]string{"version": v})
+		return
 	case "/update/start":
 		if err := u.start(r.URL.Query().Get("version")); err != nil {
 			writeJSONError(rw, err)

@@ -72,3 +72,16 @@ func TestUpdaterVerifiesChecksum(t *testing.T) {
 		t.Fatal("rejected download left behind", filepath.Base(self)+".new")
 	}
 }
+
+// Live: the latest release is read from GitHub's releases/latest redirect.
+// Run with LIVE_API=1 go test -run TestLatestVersion .
+func TestLatestVersion(t *testing.T) {
+	if os.Getenv("LIVE_API") == "" {
+		t.Skip("set LIVE_API=1 to ask GitHub")
+	}
+	v, err := latestVersion(t.Context())
+	if err != nil || !versionPattern.MatchString(v) {
+		t.Fatalf("got %q, %v", v, err)
+	}
+	t.Log("latest release:", v)
+}

@@ -3,6 +3,12 @@
 All notable changes to KintounTV. Versions follow [Semantic Versioning](https://semver.org);
 `npm run release` publishes the section matching the version in `package.json`.
 
+## 1.4.4 — 2026-10-22
+
+- **Update checks work on shared networks:** GitHub's API allows only 60 checks an hour per network
+  address, which campus and office networks use up. When it refuses, the app now reads the latest
+  version from GitHub's release page instead (and the notes from the changelog).
+
 ## 1.4.3 — 2026-10-22
 
 - **Smoother touch controls:** only real taps count — swipes, long presses, two-finger touches and

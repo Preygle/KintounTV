@@ -79,15 +79,40 @@ export function compareVersions(a: string, b: string): number {
 
 export const isNewer = (r: Release | null): r is Release => !!r && compareVersions(r.version, APP_VERSION) > 0;
 
+const VERSION = /^\d+\.\d+\.\d+$/;
+
+/** The latest release from GitHub's API (60 requests an hour per network address). */
+async function fromApi(): Promise<Release | null> {
+  const res = await fetch(LATEST_URL, { headers: { Accept: "application/vnd.github+json" } });
+  if (!res.ok) throw new Error(`GitHub ${res.status}`);
+  const body = (await res.json()) as { tag_name?: string; body?: string; html_url?: string };
+  const version = (body.tag_name ?? "").replace(/^v/, "");
+  return VERSION.test(version) ? { version, notes: body.body ?? "", url: body.html_url ?? RELEASES_PAGE } : null;
+}
+
+/**
+ * When the API refuses (shared networks run out of requests), the app's own server reads the version
+ * from GitHub's releases/latest redirect, and the notes come from CHANGELOG.md at that tag.
+ */
+async function fromApp(): Promise<Release | null> {
+  const res = await fetch("/update/latest", { cache: "no-store" });
+  if (!res.ok || !(res.headers.get("content-type") ?? "").includes("json")) throw new Error("GitHub is limiting checks right now; try again later.");
+  const { version } = (await res.json()) as { version?: string };
+  if (!version || !VERSION.test(version)) return null;
+  const changelog = await fetch(`https://raw.githubusercontent.com/Preygle/KintounTV/v${version}/CHANGELOG.md`)
+    .then((r) => (r.ok ? r.text() : ""))
+    .catch(() => "");
+  const start = changelog.indexOf(`## ${version}`);
+  const end = start < 0 ? -1 : changelog.indexOf("\n## ", start + 4);
+  const notes = start < 0 ? "" : changelog.slice(changelog.indexOf("\n", start) + 1, end < 0 ? undefined : end);
+  return { version, notes, url: `https://github.com/Preygle/KintounTV/releases/tag/v${version}` };
+}
+
 export async function checkForUpdate(): Promise<void> {
   if (state.checking) return;
   set({ checking: true, checkError: null });
   try {
-    const res = await fetch(LATEST_URL, { headers: { Accept: "application/vnd.github+json" } });
-    if (!res.ok) throw new Error(res.status === 403 ? "GitHub is limiting checks right now; try again later." : `Couldn't check (${res.status}).`);
-    const body = (await res.json()) as { tag_name?: string; body?: string; html_url?: string };
-    const version = (body.tag_name ?? "").replace(/^v/, "");
-    const latest = /^\d+\.\d+\.\d+$/.test(version) ? { version, notes: body.body ?? "", url: body.html_url ?? RELEASES_PAGE } : null;
+    const latest = await fromApi().catch(fromApp);
     write(CHECK_KEY, { at: Date.now(), latest });
     set({ latest, checkedAt: Date.now() });
   } catch (e) {
