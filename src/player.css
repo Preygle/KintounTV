@@ -531,3 +531,25 @@
     opacity: 0;
   }
 }
+
+/* "Skipped intro · Undo" after an automatic skip. */
+.player-toast.has-undo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 6px 6px 14px;
+  pointer-events: auto;
+  z-index: 4;
+}
+
+.player-toast button {
+  padding: 5px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--accent-text);
+  font: inherit;
+  font-weight: 800;
+  text-transform: none;
+  cursor: pointer;
+}

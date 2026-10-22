@@ -117,6 +117,7 @@ export default function Player({ src, overlay, skip, startAt = 0, title, subtitl
   const [hover, setHover] = useState<number | null>(null); // seek-bar position under the pointer (0–1)
   const [segments, setSegments] = useState<SkipSegment[]>([]);
   const [toast, setToast] = useState<string | null>(null);
+  const [undoAt, setUndoAt] = useState<number | null>(null); // where an automatic skip started
   const skippedRef = useRef(new Set<string>());
 
   // ---- loading -------------------------------------------------------------------------------
@@ -475,15 +476,20 @@ export default function Player({ src, overlay, skip, startAt = 0, title, subtitl
     const video = videoRef.current;
     if (!video) return;
     skippedRef.current.add(segKey(seg));
+    const from = video.currentTime;
     const target = Math.min(seg.end, (video.duration || seg.end) - 0.3);
     video.currentTime = target;
     setToast(null);
+    setUndoAt(null);
     window.clearTimeout(skipCheck.current);
     let tries = 0;
     const check = () => {
       const t = video.currentTime;
       if (t >= target - 1) {
-        if (auto) setToast(`Skipped ${seg.kind}`);
+        if (auto) {
+          setToast(`Skipped ${seg.kind}`);
+          setUndoAt(from);
+        }
       } else if (t >= seg.start - 2 && tries++ < 2) {
         video.currentTime = target;
         skipCheck.current = window.setTimeout(check, 1200);
@@ -492,17 +498,30 @@ export default function Player({ src, overlay, skip, startAt = 0, title, subtitl
     skipCheck.current = window.setTimeout(check, 800);
   }, []);
   useEffect(() => () => window.clearTimeout(skipCheck.current), []);
+  // Auto-skip: timings confirmed for this video (exact), plus intros and recaps of a believable length
+  // from any source (an "Undo" follows each automatic skip). Credits from unconfirmed timings stay a
+  // button: scenes sometimes come after them.
+  const autoSkippable = (seg: SkipSegment) => seg.exact || (seg.kind !== "credits" && seg.end - seg.start <= 180);
   useEffect(() => {
-    if (!activeSegment || !prefs.autoSkip || !activeSegment.exact || paused) return;
+    if (!activeSegment || !prefs.autoSkip || !autoSkippable(activeSegment) || paused) return;
     if (skippedRef.current.has(segKey(activeSegment))) return; // user went back into it on purpose
     doSkip(activeSegment, true);
   }, [activeSegment, prefs.autoSkip, paused, doSkip]);
   useEffect(() => {
     if (!toast) return;
-    const t = window.setTimeout(() => setToast(null), 2500);
+    const t = window.setTimeout(() => {
+      setToast(null);
+      setUndoAt(null);
+    }, undoAt === null ? 2500 : 5000);
     return () => window.clearTimeout(t);
-  }, [toast]);
-  const showSkip = !!activeSegment && !(prefs.autoSkip && activeSegment.exact && !skippedRef.current.has(segKey(activeSegment)));
+  }, [toast, undoAt]);
+  const undoSkip = () => {
+    const video = videoRef.current;
+    if (video && undoAt !== null) video.currentTime = undoAt; // already marked skipped: it won't skip again
+    setToast(null);
+    setUndoAt(null);
+  };
+  const showSkip = !!activeSegment && !(prefs.autoSkip && autoSkippable(activeSegment) && !skippedRef.current.has(segKey(activeSegment)));
 
   // ---- seek bar ----------------------------------------------------------------------------------
   const ratioAt = (clientX: number) => {
@@ -606,7 +625,16 @@ export default function Player({ src, overlay, skip, startAt = 0, title, subtitl
       )}
 
       {overlay && <div className="player-overlay">{overlay}</div>}
-      {toast && <div className="player-toast">{toast}</div>}
+      {toast && (
+        <div className={`player-toast${undoAt !== null ? " has-undo" : ""}`}>
+          {toast}
+          {undoAt !== null && (
+            <button onClick={undoSkip} onPointerUp={(e) => e.stopPropagation()}>
+              Undo
+            </button>
+          )}
+        </div>
+      )}
       {showSkip && (
         <button className="player-skip" onClick={() => doSkip(activeSegment!, false)}>
           {SKIP_LABEL[activeSegment!.kind]} <NextIcon />

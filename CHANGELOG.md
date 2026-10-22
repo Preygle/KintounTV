@@ -3,6 +3,14 @@
 All notable changes to KintounTV. Versions follow [Semantic Versioning](https://semver.org);
 `npm run release` publishes the section matching the version in `package.json`.
 
+## 1.4.6 — 2026-10-22
+
+- **Auto-skip covers more intros:** with Auto-skip intro on, intros and recaps now skip by
+  themselves whichever database the timing came from (up to 3 minutes long), not only timings
+  confirmed for your exact video. Each automatic skip shows "Skipped intro · Undo" for a few
+  seconds; Undo goes back and lets it play. Credits still skip automatically only when confirmed,
+  since scenes sometimes follow them.
+
 ## 1.4.5 — 2026-10-22
 
 - **Phone player:** tapping the video no longer makes the controls open, close and open again.
