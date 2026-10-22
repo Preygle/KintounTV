@@ -1,7 +1,7 @@
 {
   "name": "kintountv",
   "private": true,
-  "version": "1.4.4",
+  "version": "1.4.5",
   "description": "Ad-free anime streaming for Windows and Android with an in-app player, intro skipping and cross-device sync.",
   "repository": {
     "type": "git",

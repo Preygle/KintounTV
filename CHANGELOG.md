@@ -3,6 +3,14 @@
 All notable changes to KintounTV. Versions follow [Semantic Versioning](https://semver.org);
 `npm run release` publishes the section matching the version in `package.json`.
 
+## 1.4.5 — 2026-10-22
+
+- **Phone player:** tapping the video no longer makes the controls open, close and open again.
+- **Skip buttons respond on the first tap**, even while the controls are hidden (the button used to
+  jump up under your finger as the controls came back).
+- **Skips stick:** if the stream jumps back right after a skip (it can while an episode is starting),
+  the player skips again, and "Skipped intro" only shows once the skip has really happened.
+
 ## 1.4.4 — 2026-10-22
 
 - **Update checks work on shared networks:** GitHub's API allows only 60 checks an hour per network

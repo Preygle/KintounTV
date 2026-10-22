@@ -467,13 +467,31 @@ export default function Player({ src, overlay, skip, startAt = 0, title, subtitl
 
   const activeSegment = segments.find((s) => time >= s.start && time < s.end - 0.5);
   const segKey = (s: SkipSegment) => `${s.kind}:${s.start}`;
+  // While a stream is starting, hls.js can move the video back to its start position after our seek,
+  // so the skip is checked and repeated (twice at most) before "Skipped …" is shown. A position the
+  // viewer has moved to themselves (outside the segment) is left alone.
+  const skipCheck = useRef<number>();
   const doSkip = useCallback((seg: SkipSegment, auto: boolean) => {
     const video = videoRef.current;
     if (!video) return;
     skippedRef.current.add(segKey(seg));
-    video.currentTime = Math.min(seg.end, (video.duration || seg.end) - 0.3);
-    setToast(auto ? `Skipped ${seg.kind}` : null);
+    const target = Math.min(seg.end, (video.duration || seg.end) - 0.3);
+    video.currentTime = target;
+    setToast(null);
+    window.clearTimeout(skipCheck.current);
+    let tries = 0;
+    const check = () => {
+      const t = video.currentTime;
+      if (t >= target - 1) {
+        if (auto) setToast(`Skipped ${seg.kind}`);
+      } else if (t >= seg.start - 2 && tries++ < 2) {
+        video.currentTime = target;
+        skipCheck.current = window.setTimeout(check, 1200);
+      }
+    };
+    skipCheck.current = window.setTimeout(check, 800);
   }, []);
+  useEffect(() => () => window.clearTimeout(skipCheck.current), []);
   useEffect(() => {
     if (!activeSegment || !prefs.autoSkip || !activeSegment.exact || paused) return;
     if (skippedRef.current.has(segKey(activeSegment))) return; // user went back into it on purpose
@@ -559,7 +577,8 @@ export default function Player({ src, overlay, skip, startAt = 0, title, subtitl
       className={`player ${hideUi ? "is-idle" : ""} ${fullscreen ? "is-fullscreen" : ""}`}
       onPointerMove={poke}
       onPointerDown={poke}
-      onPointerLeave={() => !paused && setIdle(true)}
+      // Mouse only: on touch screens every lifted finger "leaves", which hid the controls mid-tap.
+      onPointerLeave={(e) => e.pointerType === "mouse" && !paused && setIdle(true)}
     >
       <video
         ref={videoRef}

@@ -442,9 +442,9 @@
   height: 18px;
 }
 
-/* The skip button stays reachable while the rest of the UI is hidden. */
+/* The skip button stays reachable while the rest of the UI is hidden, and stays put: moving it when
+   a touch brings the controls back made taps land beside it. */
 .player.is-idle .player-skip {
-  bottom: 24px;
   cursor: pointer;
 }
 
