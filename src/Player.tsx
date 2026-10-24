@@ -498,10 +498,9 @@ export default function Player({ src, overlay, skip, startAt = 0, title, subtitl
     skipCheck.current = window.setTimeout(check, 800);
   }, []);
   useEffect(() => () => window.clearTimeout(skipCheck.current), []);
-  // Auto-skip: timings confirmed for this video (exact), plus intros and recaps of a believable length
-  // from any source (an "Undo" follows each automatic skip). Credits from unconfirmed timings stay a
-  // button: scenes sometimes come after them.
-  const autoSkippable = (seg: SkipSegment) => seg.exact || (seg.kind !== "credits" && seg.end - seg.start <= 180);
+  // Auto-skip: timings confirmed for this video (exact), plus intros, recaps and credits of a believable
+  // length from any source. Each automatic skip offers "Undo" for a few seconds.
+  const autoSkippable = (seg: SkipSegment) => seg.exact || seg.end - seg.start <= (seg.kind === "credits" ? 240 : 180);
   useEffect(() => {
     if (!activeSegment || !prefs.autoSkip || !autoSkippable(activeSegment) || paused) return;
     if (skippedRef.current.has(segKey(activeSegment))) return; // user went back into it on purpose
