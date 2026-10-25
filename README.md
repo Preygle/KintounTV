@@ -33,7 +33,7 @@ cross-device sync.**
 - **Timeline previews.** Hover over the seek bar (or drag it on Android) to see the frame at that
   point before you jump.
 - **Downloads.** Save an episode, a few, or a whole season and watch offline, right in the app.
-- **Touch gestures.** Tap to pause, double-tap the sides to skip 10 seconds.
+- **Touch gestures.** Tap to pause, double-tap the sides to skip 5 seconds.
 - **Updates itself.** A banner offers new versions; Windows installs and restarts, Android opens its installer.
 - **Skips intros, recaps and credits** automatically, using community timings from
   [AniSkip](https://aniskip.com), with [TheIntroDB](https://theintrodb.org) and [IntroDB](https://introdb.app) as fallbacks. Turn it on or off right under the player.
@@ -99,7 +99,7 @@ gh release view --repo Preygle/KintounTV --json assets --jq '.assets[] | "\(.nam
 | Key | Action |
 | --- | --- |
 | <kbd>Space</kbd> / <kbd>K</kbd> | Play / pause |
-| <kbd>←</kbd> / <kbd>J</kbd>, <kbd>→</kbd> / <kbd>L</kbd> | Back / forward 10 seconds |
+| <kbd>←</kbd> / <kbd>J</kbd>, <kbd>→</kbd> / <kbd>L</kbd> | Back / forward 5 seconds |
 | <kbd>↑</kbd> / <kbd>↓</kbd> | Volume |
 | <kbd>M</kbd> | Mute |
 | <kbd>F</kbd> or double-click | Fullscreen |

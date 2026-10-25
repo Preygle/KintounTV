@@ -3,6 +3,11 @@
 All notable changes to KintounTV. Versions follow [Semantic Versioning](https://semver.org);
 `npm run release` publishes the section matching the version in `package.json`.
 
+## 1.5.1 — 2026-10-25
+
+- **5-second skips:** the back/forward buttons, ← / → (J / L), double taps on phones and media keys
+  now move 5 seconds instead of 10.
+
 ## 1.5.0 — 2026-10-25
 
 A proper Windows app.

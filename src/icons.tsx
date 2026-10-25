@@ -70,18 +70,18 @@ export const PauseIcon = () => (
     <rect x="14" y="4.5" width="4" height="15" rx="1.2" />
   </svg>
 );
-export const Back10Icon = () => (
+export const SeekBackIcon = ({ seconds }: { seconds: number }) => (
   <svg {...base}>
     <path d="M3 12a9 9 0 1 0 3-6.7" />
     <path d="M3 4v5h5" />
-    <text x="12" y="15.5" fontSize="7.5" fontWeight="700" textAnchor="middle" fill="currentColor" stroke="none">10</text>
+    <text x="12" y="15.5" fontSize="7.5" fontWeight="700" textAnchor="middle" fill="currentColor" stroke="none">{seconds}</text>
   </svg>
 );
-export const Forward10Icon = () => (
+export const SeekForwardIcon = ({ seconds }: { seconds: number }) => (
   <svg {...base}>
     <path d="M21 12a9 9 0 1 1-3-6.7" />
     <path d="M21 4v5h-5" />
-    <text x="12" y="15.5" fontSize="7.5" fontWeight="700" textAnchor="middle" fill="currentColor" stroke="none">10</text>
+    <text x="12" y="15.5" fontSize="7.5" fontWeight="700" textAnchor="middle" fill="currentColor" stroke="none">{seconds}</text>
   </svg>
 );
 export const VolumeIcon = ({ level }: { level: number }) => (

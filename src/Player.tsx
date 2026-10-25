@@ -3,14 +3,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type HlsType from "hls.js";
 import {
-  Back10Icon,
   CheckIcon,
   ChevronIcon,
-  Forward10Icon,
   FullscreenIcon,
   NextIcon,
   PauseIcon,
   PlayIcon,
+  SeekBackIcon,
+  SeekForwardIcon,
   SettingsIcon,
   VolumeIcon,
 } from "./icons";
@@ -47,6 +47,7 @@ type Menu = "main" | "quality" | "speed" | "subtitles";
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 const IDLE_MS = 2500;
 const PROGRESS_EVERY = 5;
+const SKIP_STEP = 5; // seconds for the skip buttons, arrow keys, double taps and media keys
 const THUMB_EVERY = 30;
 
 function formatTime(s: number) {
@@ -343,10 +344,10 @@ export default function Player({ src, overlay, skip, startAt = 0, title, subtitl
       const actions: Record<string, () => void> = {
         " ": togglePlay,
         k: togglePlay,
-        arrowright: () => seekBy(10),
-        l: () => seekBy(10),
-        arrowleft: () => seekBy(-10),
-        j: () => seekBy(-10),
+        arrowright: () => seekBy(SKIP_STEP),
+        l: () => seekBy(SKIP_STEP),
+        arrowleft: () => seekBy(-SKIP_STEP),
+        j: () => seekBy(-SKIP_STEP),
         arrowup: () => setVolume(video.volume + 0.1),
         arrowdown: () => setVolume(video.volume - 0.1),
         m: () => (video.muted = !video.muted),
@@ -398,13 +399,13 @@ export default function Player({ src, overlay, skip, startAt = 0, title, subtitl
   };
 
   // Touch: a tap in the middle plays/pauses; a double tap on the left or right third goes back or
-  // forward 10 s, and each further quick tap there adds another 10 s. A single tap at the sides shows
+  // forward 5 s (SKIP_STEP), and each further quick tap there adds another 5 s. A single tap at the sides shows
   // or hides the controls. Drags, long presses and two-finger touches are not taps.
   const TAP_SLOP = 12; // px a finger may move and still tap
   const TAP_HOLD = 350; // ms
   const DOUBLE_GAP = 280; // ms between the two taps of a double tap
   const DOUBLE_DIST = 70; // px between them
-  const STREAK_GAP = 500; // ms for each further tap to add 10 s
+  const STREAK_GAP = 500; // ms for each further tap to add SKIP_STEP
   const tapRef = useRef<{ at: number; x: number; y: number; side: "left" | "right" | null; streak: boolean }>({ at: 0, x: 0, y: 0, side: null, streak: false });
   const tapTimer = useRef<number>();
   const [seekHint, setSeekHint] = useState<{ side: "left" | "right"; seconds: number; key: number } | null>(null);
@@ -435,10 +436,10 @@ export default function Player({ src, overlay, skip, startAt = 0, title, subtitl
     const repeat = last.side === side && near && now - last.at < (last.streak ? STREAK_GAP : DOUBLE_GAP);
     tapRef.current = { at: now, x: e.clientX, y: e.clientY, side, streak: repeat };
     if (repeat) {
-      const delta = side === "left" ? -10 : 10;
+      const delta = side === "left" ? -SKIP_STEP : SKIP_STEP;
       seekBy(delta);
       window.clearTimeout(hintTimer.current);
-      setSeekHint((h) => ({ side, seconds: (h && h.side === side ? h.seconds : 0) + 10, key: now }));
+      setSeekHint((h) => ({ side, seconds: (h && h.side === side ? h.seconds : 0) + SKIP_STEP, key: now }));
       hintTimer.current = window.setTimeout(() => setSeekHint(null), 700);
       return;
     }
@@ -463,8 +464,8 @@ export default function Player({ src, overlay, skip, startAt = 0, title, subtitl
     const handlers: [MediaSessionAction, MediaSessionActionHandler][] = [
       ["play", () => videoRef.current?.play().catch(() => {})],
       ["pause", () => videoRef.current?.pause()],
-      ["seekbackward", () => seekBy(-10)],
-      ["seekforward", () => seekBy(10)],
+      ["seekbackward", () => seekBy(-SKIP_STEP)],
+      ["seekforward", () => seekBy(SKIP_STEP)],
       ["seekto", (d) => videoRef.current && d.seekTime != null && (videoRef.current.currentTime = d.seekTime)],
       ["previoustrack", () => callbacks.current.onPrev?.()],
       ["nexttrack", () => callbacks.current.onNext?.()],
@@ -674,7 +675,7 @@ export default function Player({ src, overlay, skip, startAt = 0, title, subtitl
       />
       {seekHint && (
         <div key={seekHint.key} className={`player-seek-hint ${seekHint.side}`} aria-hidden="true">
-          {seekHint.side === "left" ? <Back10Icon /> : <Forward10Icon />}
+          {seekHint.side === "left" ? <SeekBackIcon seconds={SKIP_STEP} /> : <SeekForwardIcon seconds={SKIP_STEP} />}
           <span>{seekHint.seconds} seconds</span>
         </div>
       )}
@@ -747,11 +748,11 @@ export default function Player({ src, overlay, skip, startAt = 0, title, subtitl
           <button className="pc-btn" onClick={togglePlay} aria-label={paused ? "Play" : "Pause"}>
             {paused ? <PlayIcon /> : <PauseIcon />}
           </button>
-          <button className="pc-btn" onClick={() => seekBy(-10)} aria-label="Back 10 seconds">
-            <Back10Icon />
+          <button className="pc-btn" onClick={() => seekBy(-SKIP_STEP)} aria-label={`Back ${SKIP_STEP} seconds`}>
+            <SeekBackIcon seconds={SKIP_STEP} />
           </button>
-          <button className="pc-btn" onClick={() => seekBy(10)} aria-label="Forward 10 seconds">
-            <Forward10Icon />
+          <button className="pc-btn" onClick={() => seekBy(SKIP_STEP)} aria-label={`Forward ${SKIP_STEP} seconds`}>
+            <SeekForwardIcon seconds={SKIP_STEP} />
           </button>
           {onNext && (
             <button className="pc-btn" onClick={onNext} aria-label="Next episode">
