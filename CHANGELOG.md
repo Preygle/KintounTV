@@ -3,6 +3,11 @@
 All notable changes to KintounTV. Versions follow [Semantic Versioning](https://semver.org);
 `npm run release` publishes the section matching the version in `package.json`.
 
+## 1.5.2 — 2026-10-26
+
+- **Speed keys:** A and D make playback slower or faster in 0.1× steps (0.5× to 3×); the new speed
+  shows briefly and is remembered.
+
 ## 1.5.1 — 2026-10-25
 
 - **5-second skips:** the back/forward buttons, ← / → (J / L), double taps on phones and media keys

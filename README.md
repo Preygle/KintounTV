@@ -102,6 +102,7 @@ gh release view --repo Preygle/KintounTV --json assets --jq '.assets[] | "\(.nam
 | <kbd>←</kbd> / <kbd>J</kbd>, <kbd>→</kbd> / <kbd>L</kbd> | Back / forward 5 seconds |
 | <kbd>↑</kbd> / <kbd>↓</kbd> | Volume |
 | <kbd>M</kbd> | Mute |
+| <kbd>A</kbd> / <kbd>D</kbd> | Slower / faster (0.1× steps) |
 | <kbd>F</kbd> or double-click | Fullscreen |
 | <kbd>N</kbd> / <kbd>P</kbd> | Next / previous episode |
 

@@ -45,6 +45,9 @@ interface QualityLevel {
 type Menu = "main" | "quality" | "speed" | "subtitles";
 
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
+const SPEED_STEP = 0.1; // A / D keys
+const SPEED_MIN = 0.5;
+const SPEED_MAX = 3;
 const IDLE_MS = 2500;
 const PROGRESS_EVERY = 5;
 const SKIP_STEP = 5; // seconds for the skip buttons, arrow keys, double taps and media keys
@@ -311,6 +314,17 @@ export default function Player({ src, overlay, skip, startAt = 0, title, subtitl
   }, []);
 
   // The app itself may be fullscreen (desktop/F11): only the player's own fullscreen is toggled here.
+  // A / D: playback speed in steps of 0.1 (shown briefly, remembered like the menu's choice).
+  const nudgeSpeed = useCallback((delta: number) => {
+    const video = videoRef.current;
+    if (!video) return;
+    const speed = Math.min(SPEED_MAX, Math.max(SPEED_MIN, Math.round((video.playbackRate + delta) * 10) / 10));
+    video.defaultPlaybackRate = video.playbackRate = speed;
+    setPlayerPrefs({ speed });
+    setUndoAt(null);
+    setToast(`Speed ${speed === 1 ? "normal" : `${speed}×`}`);
+  }, []);
+
   const toggleFullscreen = useCallback(() => {
     if (document.fullscreenElement === rootRef.current) document.exitFullscreen().catch(() => {});
     else rootRef.current?.requestFullscreen().catch(() => {});
@@ -355,6 +369,8 @@ export default function Player({ src, overlay, skip, startAt = 0, title, subtitl
         n: () => callbacks.current.onNext?.(),
         p: () => callbacks.current.onPrev?.(),
         escape: () => setMenu(null),
+        a: () => nudgeSpeed(-SPEED_STEP),
+        d: () => nudgeSpeed(SPEED_STEP),
       };
       const action = actions[e.key.toLowerCase()];
       if (!action) return;
@@ -366,7 +382,7 @@ export default function Player({ src, overlay, skip, startAt = 0, title, subtitl
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [togglePlay, seekBy, setVolume, toggleFullscreen, poke]);
+  }, [togglePlay, seekBy, setVolume, toggleFullscreen, poke, nudgeSpeed]);
 
   // Mouse: single click toggles play, double click toggles fullscreen (without a play/pause flicker).
   // Touch has its own gestures (onSurfaceTap), so clicks synthesized from taps are ignored.
