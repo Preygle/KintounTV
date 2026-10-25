@@ -168,6 +168,7 @@ export default function Watch() {
       startAt={startAt}
       title={title}
       subtitle={episode && episodeLabel(episode)}
+      artwork={post.data?.poster ?? saved?.poster}
       lang={saved?.lang ?? server?.lang}
       onProgress={(t, d, thumb) => episode && saveProgress(postId, toRef(episode), t, d, nextRef, thumb)}
       onEnded={() => prefs.autoNext && goTo(next)}

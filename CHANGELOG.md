@@ -3,6 +3,24 @@
 All notable changes to KintounTV. Versions follow [Semantic Versioning](https://semver.org);
 `npm run release` publishes the section matching the version in `package.json`.
 
+## 1.5.0 — 2026-10-25
+
+A proper Windows app.
+
+- **App fullscreen:** F11 or the new header button makes the whole app fullscreen, and it's
+  remembered next time. The player's fullscreen works inside it; Esc or F11 leaves.
+- **Flicker-safe fullscreen** (on by default; Account → App): fullscreen no longer switches
+  FreeSync / G-Sync monitors into game mode, which made some of them flicker. It leaves a
+  one-pixel line at the bottom of the screen; turn it off for an exact fullscreen.
+- **Remembers the window:** size, position and maximized state come back on the next start.
+- **Feels like an app, not a web page:** no link address popping up in a corner, no page zoom
+  (Ctrl + wheel, Ctrl +/−, pinch), no browser shortcuts (Ctrl+P, Ctrl+F, F5), and a dark window from
+  the first frame instead of a white flash. Alt+←/→ and the mouse's back/forward buttons navigate.
+- **Media controls:** the episode shows in Windows' media controls and keyboard media keys work
+  (play/pause, next/previous episode); on Android, in the media notification.
+- **Big screens:** pages use the full width up to 2400 px, posters scale with the window (more per
+  row on wide screens) and the player fills the screen's height on the watch page.
+
 ## 1.4.7 — 2026-10-25
 
 - **Timeline previews that keep up:** a grid of frames across the episode loads in the background a

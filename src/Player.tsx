@@ -17,13 +17,8 @@ import {
 import { getPlayerPrefs, setPlayerPrefs, usePlayerPrefs } from "./progress";
 import { fetchSkips, SKIP_LABEL, type SkipLookup, type SkipSegment } from "./skips";
 import { usePreview } from "./trickplay";
+import { syncWindowFullscreen } from "./desktop";
 
-declare global {
-  interface Window {
-    // Provided by the desktop app: turns the window itself borderless/fullscreen.
-    kintounSetFullscreen?: (on: boolean) => Promise<void>;
-  }
-}
 
 interface PlayerProps {
   // null while the next stream is being looked up: the player (and fullscreen) stays mounted.
@@ -33,6 +28,7 @@ interface PlayerProps {
   startAt?: number;
   title?: string;
   subtitle?: string;
+  artwork?: string; // poster, for the system media controls
   lang?: string;
   onProgress?: (time: number, duration: number, thumb?: string) => void;
   onEnded?: () => void;
@@ -91,7 +87,7 @@ function captureFrame(video: HTMLVideoElement): string | undefined {
   }
 }
 
-export default function Player({ src, overlay, skip, startAt = 0, title, subtitle, lang, onProgress, onEnded, onNext, onPrev, onFatalError }: PlayerProps) {
+export default function Player({ src, overlay, skip, startAt = 0, title, subtitle, artwork, lang, onProgress, onEnded, onNext, onPrev, onFatalError }: PlayerProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const seekRef = useRef<HTMLDivElement>(null);
@@ -313,8 +309,9 @@ export default function Player({ src, overlay, skip, startAt = 0, title, subtitl
     video.muted = video.volume === 0;
   }, []);
 
+  // The app itself may be fullscreen (desktop/F11): only the player's own fullscreen is toggled here.
   const toggleFullscreen = useCallback(() => {
-    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    if (document.fullscreenElement === rootRef.current) document.exitFullscreen().catch(() => {});
     else rootRef.current?.requestFullscreen().catch(() => {});
   }, []);
 
@@ -323,13 +320,13 @@ export default function Player({ src, overlay, skip, startAt = 0, title, subtitl
     const sync = () => {
       const on = document.fullscreenElement === rootRef.current;
       setFullscreen(on);
-      window.kintounSetFullscreen?.(document.fullscreenElement != null).catch(() => {});
+      syncWindowFullscreen();
     };
     document.addEventListener("fullscreenchange", sync);
     return () => {
       document.removeEventListener("fullscreenchange", sync);
       if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-      window.kintounSetFullscreen?.(false).catch(() => {});
+      window.setTimeout(syncWindowFullscreen, 0); // after the exit above has taken effect
     };
   }, []);
 
@@ -452,6 +449,44 @@ export default function Player({ src, overlay, skip, startAt = 0, title, subtitl
       else setIdle(true);
     }, DOUBLE_GAP);
   };
+
+  // ---- system media controls ------------------------------------------------------------------
+  // Windows' media flyout, keyboard media keys and Android's media notification controls.
+  useEffect(() => {
+    if (!("mediaSession" in navigator) || !src) return;
+    const session = navigator.mediaSession;
+    session.metadata = new MediaMetadata({
+      title: subtitle ? `${title ?? ""} · ${subtitle}` : (title ?? ""),
+      artist: "KintounTV",
+      artwork: artwork ? [{ src: artwork, sizes: "512x512" }] : [],
+    });
+    const handlers: [MediaSessionAction, MediaSessionActionHandler][] = [
+      ["play", () => videoRef.current?.play().catch(() => {})],
+      ["pause", () => videoRef.current?.pause()],
+      ["seekbackward", () => seekBy(-10)],
+      ["seekforward", () => seekBy(10)],
+      ["seekto", (d) => videoRef.current && d.seekTime != null && (videoRef.current.currentTime = d.seekTime)],
+      ["previoustrack", () => callbacks.current.onPrev?.()],
+      ["nexttrack", () => callbacks.current.onNext?.()],
+    ];
+    for (const [action, fn] of handlers) {
+      try {
+        session.setActionHandler(action, fn);
+      } catch {
+        // action not supported here
+      }
+    }
+    return () => {
+      for (const [action] of handlers) {
+        try {
+          session.setActionHandler(action, null);
+        } catch {
+          // ignore
+        }
+      }
+      session.metadata = null;
+    };
+  }, [src, title, subtitle, artwork, seekBy]);
 
   // ---- intro / recap / credits ------------------------------------------------------------------
   const skipKey = skip && src ? `${skip.postId}:${skip.episode}` : null;

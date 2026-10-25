@@ -2645,3 +2645,34 @@ img {
     order: 2;
   }
 }
+
+/* ---- large screens ---------------------------------------------------------------------------
+   Use the width of big monitors (and app fullscreen): the page grows to 2400px, the gutters grow
+   with it, posters scale with the window so wider screens show more of them, and the watch page's
+   player is as large as the screen's height allows. */
+@media (min-width: 1700px) {
+  :root {
+    --gutter: clamp(28px, 2.6vw, 72px);
+  }
+
+  .content {
+    max-width: 2400px;
+  }
+
+  .row-scroller {
+    grid-auto-columns: clamp(192px, 10.2vw, 270px);
+    gap: clamp(18px, 1vw, 26px);
+  }
+
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(clamp(172px, 10vw, 250px), 1fr));
+  }
+
+  .continue-row .row-scroller {
+    grid-auto-columns: clamp(320px, 20vw, 480px);
+  }
+
+  .watch {
+    max-width: min(2000px, calc((100dvh - 250px) * 16 / 9 + 2 * var(--gutter)));
+  }
+}

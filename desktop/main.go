@@ -76,10 +76,11 @@ func main() {
 
 	web, _ := fs.Sub(embedded, "web")
 	go func() {
-		_ = http.Serve(listener, newHandler(host, web, filepath.Join(localAppData(), appName, "Downloads")))
+		_ = http.Serve(listener, newHandler(host, web, filepath.Join(dataRoot(), "Downloads")))
 	}()
 
 	dataDir := envOr("KINTOUN_PROFILE", profileDir())
+	prepareWebView()
 	w := webview2.NewWithOptions(webview2.WebViewOptions{
 		Debug:     false,
 		AutoFocus: true,
@@ -103,8 +104,13 @@ func main() {
 
 	hwnd := uintptr(w.Window())
 	useDarkTitleBar(hwnd)
-	// Called by the page on fullscreenchange; bindings run on the UI thread.
+	applyAppSettings(w)
+	restorePlacement(hwnd)
+	go watchPlacement(hwnd)
+	go watchFullscreenFocus(w, hwnd)
+	// Called by the page (src/desktop.ts); bindings run on the UI thread.
 	w.Bind("kintounSetFullscreen", func(on bool) { setFullscreen(hwnd, on) })
+	w.Bind("kintounSetFullscreenMode", func(safe bool) { setFullscreenMode(hwnd, safe) })
 	w.SetSize(420, 600, webview2.HintMin)
 	w.Navigate("http://" + host + "/")
 	w.Run()
@@ -168,6 +174,9 @@ func serveStatic(rw http.ResponseWriter, r *http.Request, web fs.FS) {
 	}
 	http.ServeContent(rw, r, name, time.Time{}, f.(io.ReadSeeker))
 }
+
+// dataRoot holds the app's own files (downloads, window.json); KINTOUN_DATA moves them (testing).
+func dataRoot() string { return envOr("KINTOUN_DATA", filepath.Join(localAppData(), appName)) }
 
 func localAppData() string {
 	if dir := os.Getenv("LOCALAPPDATA"); dir != "" {

@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter, Link, NavLink, Route, Routes, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import "@fontsource-variable/inter";
 import { Img } from "./components";
-import { BellIcon, BookmarkIcon, CalendarIcon, DownloadIcon, GridIcon, HomeIcon, SearchIcon } from "./icons";
+import { BellIcon, BookmarkIcon, CalendarIcon, DownloadIcon, FullscreenIcon, GridIcon, HomeIcon, SearchIcon } from "./icons";
 import { clearNotifications, markAllRead, startNotifications, useNotifications } from "./notifications";
 import Home from "./pages/Home";
 import Categories from "./pages/Categories";
@@ -17,6 +17,7 @@ import Watch from "./pages/Watch";
 import Account from "./pages/Account";
 import { syncConfigured, useSync } from "./sync";
 import UpdateBanner from "./UpdateBanner";
+import { isDesktopApp, startDesktop, toggleAppFullscreen, useDesktop } from "./desktop";
 import { startUpdateChecks } from "./updates";
 import "./styles.css";
 import "./player.css";
@@ -161,6 +162,18 @@ function Notifications() {
   );
 }
 
+/** Windows app: the whole app fullscreen (also F11). */
+function FullscreenButton() {
+  const { appFullscreen } = useDesktop();
+  if (!isDesktopApp) return null;
+  const label = appFullscreen ? "Exit fullscreen (F11)" : "Fullscreen (F11)";
+  return (
+    <button className="icon-btn" onClick={toggleAppFullscreen} aria-label={label} title={label} aria-pressed={appFullscreen}>
+      <FullscreenIcon exit={appFullscreen} />
+    </button>
+  );
+}
+
 function AccountButton() {
   const sync = useSync();
   if (!syncConfigured) return null;
@@ -192,6 +205,7 @@ function App() {
         <div className="topbar-end">
           <SearchField />
           <Notifications />
+          <FullscreenButton />
           <AccountButton />
         </div>
       </header>
@@ -223,8 +237,9 @@ function App() {
   );
 }
 
-// A reload while fullscreen skips the player's cleanup; make sure the desktop window is restored.
-window.kintounSetFullscreen?.(false).catch(() => {});
+// Restores app fullscreen and the flicker-safe setting; also undoes a player fullscreen left over
+// from a reload (which skips the player's cleanup).
+startDesktop();
 startNotifications();
 startUpdateChecks();
 
