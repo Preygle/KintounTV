@@ -3,7 +3,7 @@
 // preview fetches the keyframe nearest the hovered time (20–40 KB at 360p), pulls the H.264 out of the
 // TS packets and decodes it with WebCodecs. Frames are kept for the episode, so going back over the
 // bar is instant. Without an I-frame playlist or WebCodecs the bar shows just the time, as before.
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface Keyframe {
   start: number;
@@ -148,8 +148,10 @@ async function toImage(frame: VideoFrame): Promise<string> {
 
 class Trickplay {
   private frames = new Map<number, string>();
-  private busy: { index: number; promise: Promise<string | null> } | null = null;
-  private queued: { index: number; resolve: (url: string | null) => void } | null = null;
+  private loading = new Set<number>();
+  private wanted: number | null = null; // where the viewer is pointing: always loaded next
+  private prefetch: number[] = []; // a coarse grid over the episode, filled in the background
+  private listeners = new Set<() => void>();
   private failures = 0;
   broken = false;
 
@@ -166,41 +168,69 @@ class Trickplay {
     return lo;
   }
 
-  /** The decoded frame for `index`, or the closest one already decoded nearby. */
-  near(index: number): string | undefined {
-    for (let d = 0; d <= 6; d++) {
-      const hit = this.frames.get(index - d) ?? this.frames.get(index + d);
+  /** Called whenever a frame arrives (or previews turn out to be impossible). */
+  subscribe(fn: () => void): () => void {
+    this.listeners.add(fn);
+    return () => this.listeners.delete(fn);
+  }
+
+  /**
+   * The decoded frame closest to `index`, if one is within a sensible distance (20 s, or 4% of the
+   * episode on long ones) — so a fast drag shows nearby frames instead of nothing.
+   */
+  nearest(index: number): string | undefined {
+    const at = this.list[index]?.start ?? 0;
+    const span = Math.max(20, 0.04 * (this.list[this.list.length - 1]?.start ?? 0));
+    for (let d = 0; d < this.list.length; d++) {
+      const lo = index - d;
+      const hi = index + d;
+      if ((lo < 0 || at - this.list[lo].start > span) && (hi >= this.list.length || this.list[hi].start - at > span)) break;
+      const hit = (lo >= 0 && this.frames.get(lo)) || (hi < this.list.length && this.frames.get(hi));
       if (hit) return hit;
     }
     return undefined;
   }
 
-  has(index: number) {
-    return this.frames.has(index);
+  /** Load this position next (replacing the previous wish; frames already on the way still land). */
+  want(index: number) {
+    if (!this.frames.has(index)) this.wanted = index;
+    this.pump();
   }
 
-  /** One keyframe is fetched at a time; while it loads, only the latest request waits its turn. */
-  request(index: number): Promise<string | null> {
-    const hit = this.frames.get(index);
-    if (hit) return Promise.resolve(hit);
-    if (this.busy?.index === index) return this.busy.promise;
-    return new Promise((resolve) => {
-      this.queued?.resolve(null); // superseded by a newer position
-      this.queued = { index, resolve };
-      this.pump();
-    });
+  /** Background loading of ~48 frames across the episode, coarse to fine, behind `want`. */
+  startPrefetch(count = 48) {
+    if (this.prefetch.length) return;
+    const n = this.list.length;
+    const grid = Array.from({ length: Math.min(count, n) }, (_, i) => Math.round((i * (n - 1)) / Math.max(1, Math.min(count, n) - 1)));
+    // Bit-reversed order: halves, then quarters, … so coverage is even at every moment.
+    const bits = Math.ceil(Math.log2(grid.length || 1));
+    const rev = (i: number) => parseInt(i.toString(2).padStart(bits, "0").split("").reverse().join(""), 2);
+    this.prefetch = grid.map((g, i) => ({ g, k: rev(i) })).sort((a, b) => a.k - b.k).map((x) => x.g);
+    this.pump();
   }
 
+  // Two frames load at a time: the wanted one first, prefetching otherwise.
   private pump() {
-    if (this.busy || !this.queued || this.broken) return;
-    const { index, resolve } = this.queued;
-    this.queued = null;
-    const promise = this.load(index);
-    this.busy = { index, promise };
-    promise.then(resolve).finally(() => {
-      this.busy = null;
-      this.pump();
-    });
+    while (!this.broken && this.loading.size < 2) {
+      let next: number | undefined;
+      if (this.wanted !== null && !this.frames.has(this.wanted) && !this.loading.has(this.wanted)) {
+        next = this.wanted;
+        this.wanted = null;
+      } else {
+        while (this.prefetch.length && next === undefined) {
+          const i = this.prefetch.shift()!;
+          if (!this.frames.has(i) && !this.loading.has(i)) next = i;
+        }
+      }
+      if (next === undefined) return;
+      const index = next;
+      this.loading.add(index);
+      this.load(index).finally(() => {
+        this.loading.delete(index);
+        this.listeners.forEach((l) => l());
+        this.pump();
+      });
+    }
   }
 
   private async load(index: number): Promise<string | null> {
@@ -231,8 +261,9 @@ class Trickplay {
 
   dispose() {
     this.broken = true;
-    this.queued?.resolve(null);
-    this.queued = null;
+    this.wanted = null;
+    this.prefetch = [];
+    this.listeners.clear();
     for (const url of this.frames.values()) URL.revokeObjectURL(url);
     this.frames.clear();
   }
@@ -241,30 +272,27 @@ class Trickplay {
 const supported = typeof VideoDecoder !== "undefined" && typeof EncodedVideoChunk !== "undefined";
 
 /**
- * Preview image for `time` in the stream `src` (null while nothing is being previewed). The
- * keyframe index is loaded the first time the bar is hovered, not with the episode.
+ * Preview image for `time` in the stream `src` (null while nothing is being previewed): the frame
+ * nearest `time` among those loaded so far. The keyframe index loads with the episode; frames load
+ * from the first time the bar is used (where the pointer is first, a grid across the episode behind).
  * `available` is false when this stream or device can't make previews.
  */
 export function usePreview(src: string | null, time: number | null): { image: string | null; available: boolean } {
-  const [loadFor, setLoadFor] = useState<string | null>(null);
   const [trickplay, setTrickplay] = useState<{ src: string; tp: Trickplay | null } | null>(null);
   const [image, setImage] = useState<string | null>(null);
-  const [, setBroken] = useState(0);
+  const [, setVersion] = useState(0);
+  const indexRef = useRef(-1);
 
-  const peeking = time !== null;
+  // The keyframe index (two small playlists) loads with the episode, so the first hover is quick.
   useEffect(() => {
-    if (supported && peeking && src && loadFor !== src) setLoadFor(src);
-  }, [peeking, src, loadFor]);
-
-  useEffect(() => {
-    if (!loadFor) return;
+    if (!supported || !src) return;
     let live = true;
     let made: Trickplay | null = null;
-    keyframes(loadFor)
+    keyframes(src)
       .catch(() => null)
       .then((list) => {
         made = list && new Trickplay(list);
-        if (live) setTrickplay({ src: loadFor, tp: made });
+        if (live) setTrickplay({ src, tp: made });
         else made?.dispose();
       });
     return () => {
@@ -273,25 +301,40 @@ export function usePreview(src: string | null, time: number | null): { image: st
       setTrickplay(null);
       setImage(null);
     };
-  }, [loadFor]);
+  }, [src]);
 
   const tp = trickplay && trickplay.src === src ? trickplay.tp : null;
   const index = tp && time !== null ? tp.indexAt(time) : -1;
+  indexRef.current = index;
+
+  // Every arriving frame may be closer to where the viewer is now than the one shown.
+  useEffect(() => {
+    if (!tp) return;
+    return tp.subscribe(() => {
+      setVersion((v) => v + 1);
+      if (indexRef.current >= 0) {
+        const hit = tp.nearest(indexRef.current);
+        if (hit) setImage(hit);
+      }
+    });
+  }, [tp]);
+
+  // The grid of frames loads a few seconds into the episode (~1.5 MB), so the first drag already
+  // has previews all along the bar.
+  useEffect(() => {
+    if (!tp) return;
+    const t = window.setTimeout(() => tp.startPrefetch(), 4000);
+    return () => window.clearTimeout(t);
+  }, [tp]);
+
   useEffect(() => {
     if (!tp || index < 0) return;
-    const nearby = tp.near(index);
-    if (nearby) setImage(nearby);
-    if (tp.has(index)) return;
-    let live = true;
-    tp.request(index).then((url) => {
-      if (live && url) setImage(url);
-      if (tp.broken) setBroken((n) => n + 1);
-    });
-    return () => {
-      live = false;
-    };
+    tp.startPrefetch(); // the bar is used before the grid started: start it now
+    const hit = tp.nearest(index);
+    if (hit) setImage(hit);
+    tp.want(index);
   }, [tp, index]);
 
-  const pending = supported && !!src && (loadFor !== src || trickplay === null);
+  const pending = supported && !!src && trickplay === null;
   return { image: tp && !tp.broken ? image : null, available: tp ? !tp.broken : pending };
 }

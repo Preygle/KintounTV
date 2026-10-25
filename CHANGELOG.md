@@ -3,6 +3,17 @@
 All notable changes to KintounTV. Versions follow [Semantic Versioning](https://semver.org);
 `npm run release` publishes the section matching the version in `package.json`.
 
+## 1.4.7 — 2026-10-25
+
+- **Timeline previews that keep up:** a grid of frames across the episode loads in the background a
+  few seconds in, and dragging shows the nearest frame instead of waiting for the exact one (before,
+  a quick drag showed no new frames at all).
+- **Smoother seek bar:** dragging updates at most once per frame, a quick tap on the bar always
+  seeks, and the bar can't get stuck mid-drag. On phones the bar is taller to grab and the handle
+  is bigger and always visible.
+- **Outros auto-skip too:** with Auto-skip on, credits of up to 4 minutes skip by themselves from any
+  source (with Undo), not only timings confirmed for your exact video.
+
 ## 1.4.6 — 2026-10-22
 
 - **Auto-skip covers more intros:** with Auto-skip intro on, intros and recaps now skip by

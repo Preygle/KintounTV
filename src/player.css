@@ -553,3 +553,38 @@
   text-transform: none;
   cursor: pointer;
 }
+
+/* Touch screens: a taller bar to grab and a bigger handle that's always visible. */
+@media (pointer: coarse) {
+  .seek {
+    height: 34px;
+    margin: 0 10px;
+  }
+
+  .seek-track,
+  .seek:hover .seek-track {
+    top: 15px;
+    height: 4px;
+  }
+
+  .seek.dragging .seek-track {
+    top: 14px;
+    height: 6px;
+  }
+
+  .seek-thumb {
+    top: 10px;
+    width: 14px;
+    height: 14px;
+    margin-left: -7px;
+    transform: scale(1);
+  }
+
+  .seek.dragging .seek-thumb {
+    transform: scale(1.4);
+  }
+
+  .seek-tip {
+    bottom: 36px;
+  }
+}

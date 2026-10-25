@@ -525,25 +525,53 @@ export default function Player({ src, overlay, skip, startAt = 0, title, subtitl
   // ---- seek bar ----------------------------------------------------------------------------------
   const ratioAt = (clientX: number) => {
     const rect = seekRef.current!.getBoundingClientRect();
-    return Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+    return rect.width ? Math.min(1, Math.max(0, (clientX - rect.left) / rect.width)) : 0;
   };
+  // Dragging is tracked in a ref (a quick tap ends before React re-renders), and the bar's position
+  // and preview update at most once per frame, so dragging stays smooth on phones.
+  const dragging = useRef<number | null>(null); // pointer id
+  const pendingSeek = useRef<{ hover?: number | null; scrub?: number | null } | null>(null);
+  const seekFrame = useRef(0);
+  const queueSeek = (patch: { hover?: number | null; scrub?: number | null }) => {
+    pendingSeek.current = { ...pendingSeek.current, ...patch };
+    seekFrame.current ||= requestAnimationFrame(() => {
+      seekFrame.current = 0;
+      const p = pendingSeek.current;
+      pendingSeek.current = null;
+      if (p && "hover" in p) setHover(p.hover!);
+      if (p && "scrub" in p) setScrub(p.scrub!);
+    });
+  };
+  const endDrag = () => {
+    dragging.current = null;
+    cancelAnimationFrame(seekFrame.current);
+    seekFrame.current = 0;
+    pendingSeek.current = null;
+    setScrub(null);
+  };
+  useEffect(() => () => cancelAnimationFrame(seekFrame.current), []);
   const onSeekDown = (e: React.PointerEvent) => {
     e.currentTarget.setPointerCapture(e.pointerId);
+    dragging.current = e.pointerId;
     const r = ratioAt(e.clientX);
-    setScrub(r);
-    setHover(r); // touch has no hover: the preview follows the finger while dragging
+    queueSeek({ scrub: r, hover: r }); // touch has no hover: the preview follows the finger while dragging
   };
   const onSeekMove = (e: React.PointerEvent) => {
     const r = ratioAt(e.clientX);
-    setHover(r);
-    if (scrub !== null) setScrub(r);
+    queueSeek(dragging.current === e.pointerId ? { hover: r, scrub: r } : { hover: r });
   };
   const onSeekUp = (e: React.PointerEvent) => {
+    if (dragging.current === e.pointerId) {
+      const video = videoRef.current;
+      if (video && duration) video.currentTime = ratioAt(e.clientX) * duration;
+      endDrag();
+    }
     if (e.pointerType !== "mouse") setHover(null);
-    if (scrub === null) return;
-    const video = videoRef.current;
-    if (video && duration) video.currentTime = ratioAt(e.clientX) * duration;
-    setScrub(null);
+  };
+  // Android can take a gesture over (pointercancel); don't leave the bar stuck mid-drag.
+  const onSeekCancel = () => {
+    endDrag();
+    setHover(null);
   };
 
   // ---- settings ----------------------------------------------------------------------------------
@@ -654,7 +682,8 @@ export default function Player({ src, overlay, skip, startAt = 0, title, subtitl
           onPointerDown={onSeekDown}
           onPointerMove={onSeekMove}
           onPointerUp={onSeekUp}
-          onPointerLeave={() => setHover(null)}
+          onPointerCancel={onSeekCancel}
+          onPointerLeave={(e) => dragging.current === null && e.pointerType === "mouse" && setHover(null)}
           role="slider"
           aria-label="Seek"
           aria-valuemin={0}
