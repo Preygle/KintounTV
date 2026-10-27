@@ -3,6 +3,13 @@
 All notable changes to KintounTV. Versions follow [Semantic Versioning](https://semver.org);
 `npm run release` publishes the section matching the version in `package.json`.
 
+## 1.5.4 — 2026-10-27
+
+- **Downloads play offline reliably:** the player now asks for each piece of a downloaded episode
+  separately instead of reading parts of one big file, which failed with "fragLoadError" in some
+  cases (notably on Android without a connection). Episodes downloaded earlier play this way too —
+  nothing needs downloading again.
+
 ## 1.5.3 — 2026-10-27
 
 - **Screen changes from 1.5.0 undone** (they made fullscreen flicker worse on some monitors):

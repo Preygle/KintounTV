@@ -692,22 +692,63 @@ final class Downloads {
         return s == null ? "" : s;
     }
 
-    /** index.m3u8 or video.ts of a download; video.ts honours Range (the playlist uses byte ranges). */
+    /**
+     * A download for the player: index.m3u8 lists every segment by its own URL (seg/N.ts), and each is
+     * answered in full from its byte range of video.ts, so playback never depends on the WebView
+     * handling range requests on intercepted responses (it reported "fragLoadError" offline). The
+     * playlist is generated from parts.json, so earlier downloads play this way too. video.ts itself
+     * (with Range) stays available.
+     */
     private WebResourceResponse media(String rest, Map<String, String> headers) throws IOException {
         int slash = rest.indexOf('/');
         String id = slash > 0 ? Uri.decode(rest.substring(0, slash)) : "";
         String name = slash > 0 ? rest.substring(slash + 1) : "";
-        if (id.isEmpty() || !id.equals(safeId(id)) || !(name.equals("index.m3u8") || name.equals("video.ts"))) {
-            return LocalServer.json(404, LocalServer.error("not found"));
+        if (id.isEmpty() || !id.equals(safeId(id))) return LocalServer.json(404, LocalServer.error("not found"));
+        File jobDir = new File(dir, id);
+        if (name.equals("index.m3u8") || (name.startsWith("seg/") && name.endsWith(".ts"))) {
+            List<long[]> parts = new ArrayList<>();
+            List<Double> durations = new ArrayList<>();
+            readParts(jobDir, parts, durations);
+            Map<String, String> out = new HashMap<>();
+            out.put("Cache-Control", "no-store");
+            if (name.equals("index.m3u8")) {
+                if (parts.isEmpty()) return LocalServer.json(404, LocalServer.error("not found"));
+                double longest = 1;
+                for (double d : durations) longest = Math.max(longest, d);
+                StringBuilder b = new StringBuilder("#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-PLAYLIST-TYPE:VOD\n");
+                b.append("#EXT-X-TARGETDURATION:").append((int) Math.ceil(longest)).append("\n#EXT-X-MEDIA-SEQUENCE:0\n");
+                for (int i = 0; i < parts.size(); i++) {
+                    b.append(String.format(Locale.ROOT, "#EXTINF:%.3f,\nseg/%d.ts\n", durations.get(i), i));
+                }
+                b.append("#EXT-X-ENDLIST\n");
+                return new WebResourceResponse("application/vnd.apple.mpegurl", "utf-8", 200, "OK", out,
+                        new java.io.ByteArrayInputStream(b.toString().getBytes(StandardCharsets.UTF_8)));
+            }
+            int n;
+            try {
+                n = Integer.parseInt(name.substring(4, name.length() - 3));
+            } catch (NumberFormatException e) {
+                n = -1;
+            }
+            File video = new File(jobDir, "video.ts");
+            if (n < 0 || n >= parts.size() || !video.isFile()) return LocalServer.json(404, LocalServer.error("not found"));
+            long[] p = parts.get(n);
+            FileInputStream in = new FileInputStream(video);
+            long skipped = 0;
+            while (skipped < p[0]) {
+                long k = in.skip(p[0] - skipped);
+                if (k <= 0) break;
+                skipped += k;
+            }
+            out.put("Content-Length", String.valueOf(p[1]));
+            return new WebResourceResponse("video/mp2t", null, 200, "OK", out, new Limited(in, p[1]));
         }
-        File f = new File(new File(dir, id), name);
+        if (!name.equals("video.ts")) return LocalServer.json(404, LocalServer.error("not found"));
+        File f = new File(jobDir, name);
         if (!f.isFile()) return LocalServer.json(404, LocalServer.error("not found"));
         Map<String, String> out = new HashMap<>();
         out.put("Cache-Control", "no-store");
         out.put("Accept-Ranges", "bytes");
-        if (name.equals("index.m3u8")) {
-            return new WebResourceResponse("application/vnd.apple.mpegurl", "utf-8", 200, "OK", out, new FileInputStream(f));
-        }
         long length = f.length();
         String range = headers == null ? null : headers.get("Range");
         if (range == null) range = headers == null ? null : headers.get("range");

@@ -78,6 +78,23 @@ func TestDownloadRenewsExpiredLink(t *testing.T) {
 		t.Fatalf("playlist:\n%s", playlist)
 	}
 
+	// The player gets one URL per segment, each answered in full (no range requests needed).
+	get := func(path string) (int, []byte) {
+		rec := httptest.NewRecorder()
+		d.serve(rec, httptest.NewRequest(http.MethodGet, path, nil))
+		return rec.Code, rec.Body.Bytes()
+	}
+	code, list := get("/downloads/media/" + j.ID + "/index.m3u8")
+	if code != 200 || !strings.Contains(string(list), "#EXTINF:2.500,\nseg/0.ts\n") || !strings.Contains(string(list), "seg/6.ts") || strings.Contains(string(list), "BYTERANGE") {
+		t.Fatalf("segment playlist %d:\n%s", code, list)
+	}
+	if code, body := get("/downloads/media/" + j.ID + "/seg/3.ts"); code != 200 || !bytes.Equal(body, seg(3)) {
+		t.Fatalf("seg/3.ts: %d, %d bytes", code, len(body))
+	}
+	if code, _ := get("/downloads/media/" + j.ID + "/seg/7.ts"); code != 404 {
+		t.Fatalf("segment past the end: %d", code)
+	}
+
 	// The list survives a restart.
 	again := newDownloader(dir, nil)
 	if s := again.snapshot(); len(s) != 1 || s[0].Status != "done" {

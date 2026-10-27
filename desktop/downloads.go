@@ -645,28 +645,75 @@ func (d *downloader) serve(rw http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// serveMedia serves a download to the player as a playlist of separate segment URLs
+// (seg/<n>.ts), each answered in full from its byte range of video.ts. The player never has to rely
+// on HTTP range requests, which some WebViews handle poorly ("fragLoadError" offline). index.m3u8 is
+// generated from parts.json, so downloads made by earlier versions play this way too; video.ts
+// itself stays available (it is also what VLC opens).
 func (d *downloader) serveMedia(rw http.ResponseWriter, r *http.Request, rest string) {
 	id, name, ok := strings.Cut(rest, "/")
-	if !ok || id == "" || id != safeID.ReplaceAllString(id, "_") || (name != "index.m3u8" && name != "video.ts") {
+	if !ok || id == "" || id != safeID.ReplaceAllString(id, "_") {
 		http.NotFound(rw, r)
 		return
 	}
-	f, err := os.Open(filepath.Join(d.dir, id, name))
-	if err != nil {
-		http.NotFound(rw, r)
-		return
-	}
-	defer f.Close()
-	info, err := f.Stat()
-	if err != nil {
-		http.NotFound(rw, r)
-		return
-	}
-	if name == "index.m3u8" {
-		rw.Header().Set("Content-Type", "application/vnd.apple.mpegurl")
-	} else {
-		rw.Header().Set("Content-Type", "video/mp2t")
-	}
+	dir := filepath.Join(d.dir, id)
 	rw.Header().Set("Cache-Control", "no-store")
-	http.ServeContent(rw, r, name, info.ModTime(), f)
+	switch {
+	case name == "index.m3u8":
+		parts := readParts(dir)
+		if len(parts) == 0 {
+			http.NotFound(rw, r)
+			return
+		}
+		rw.Header().Set("Content-Type", "application/vnd.apple.mpegurl")
+		io.WriteString(rw, segmentPlaylist(parts))
+	case strings.HasPrefix(name, "seg/") && strings.HasSuffix(name, ".ts"):
+		n, err := strconv.Atoi(strings.TrimSuffix(strings.TrimPrefix(name, "seg/"), ".ts"))
+		parts := readParts(dir)
+		if err != nil || n < 0 || n >= len(parts) {
+			http.NotFound(rw, r)
+			return
+		}
+		f, err := os.Open(filepath.Join(dir, "video.ts"))
+		if err != nil {
+			http.NotFound(rw, r)
+			return
+		}
+		defer f.Close()
+		p := parts[n]
+		rw.Header().Set("Content-Type", "video/mp2t")
+		rw.Header().Set("Content-Length", strconv.FormatInt(p.Length, 10))
+		io.Copy(rw, io.NewSectionReader(f, p.Offset, p.Length))
+	case name == "video.ts":
+		f, err := os.Open(filepath.Join(dir, name))
+		if err != nil {
+			http.NotFound(rw, r)
+			return
+		}
+		defer f.Close()
+		info, err := f.Stat()
+		if err != nil {
+			http.NotFound(rw, r)
+			return
+		}
+		rw.Header().Set("Content-Type", "video/mp2t")
+		http.ServeContent(rw, r, name, info.ModTime(), f)
+	default:
+		http.NotFound(rw, r)
+	}
+}
+
+// segmentPlaylist lists every downloaded segment by its own URL (see serveMedia).
+func segmentPlaylist(parts []part) string {
+	longest := 1.0
+	for _, p := range parts {
+		longest = math.Max(longest, p.Duration)
+	}
+	var b strings.Builder
+	fmt.Fprintf(&b, "#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-PLAYLIST-TYPE:VOD\n#EXT-X-TARGETDURATION:%d\n#EXT-X-MEDIA-SEQUENCE:0\n", int(math.Ceil(longest)))
+	for i, p := range parts {
+		fmt.Fprintf(&b, "#EXTINF:%.3f,\nseg/%d.ts\n", p.Duration, i)
+	}
+	b.WriteString("#EXT-X-ENDLIST\n")
+	return b.String()
 }
