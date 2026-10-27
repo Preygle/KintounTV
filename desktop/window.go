@@ -23,7 +23,6 @@ var (
 	procSetWindowPos        = user32.NewProc("SetWindowPos")
 	procMonitorFromWindow   = user32.NewProc("MonitorFromWindow")
 	procGetMonitorInfoW     = user32.NewProc("GetMonitorInfoW")
-	procGetForegroundWindow = user32.NewProc("GetForegroundWindow")
 	procDwmSetWindowAttr    = syscall.NewLazyDLL("dwmapi.dll").NewProc("DwmSetWindowAttribute")
 )
 
@@ -50,62 +49,10 @@ type monitorInfo struct {
 // fullscreen tracks the window state saved when the page enters fullscreen. WebView2 only makes
 // the element fill the WebView, so the host must turn the window itself into a borderless
 // monitor-sized window (and restore it afterwards). Only touched on the UI thread.
-//
-// Flicker-safe mode (the default; a setting on the Account page): a window that exactly covers the
-// monitor is treated by Windows as a fullscreen game — the video is flipped straight to the display
-// and variable-refresh monitors follow the video's frame rate, which makes some of them flicker. A
-// window one pixel short of the monitor stays composed by the desktop at its normal refresh rate.
-// To still cover the taskbar it is kept topmost while it is the active window.
 var fullscreen struct {
 	active    bool
-	safe      bool
-	topmost   bool
 	style     uintptr
 	placement windowPlacement
-}
-
-func init() { fullscreen.safe = true }
-
-const (
-	hwndTopmost   = ^uintptr(0) // HWND_TOPMOST (-1)
-	hwndNoTopmost = ^uintptr(1) // HWND_NOTOPMOST (-2)
-	swpNoActivate = 0x0010
-)
-
-// setFullscreenMode switches flicker-safe fullscreen on or off (re-applied if fullscreen now).
-func setFullscreenMode(hwnd uintptr, safe bool) {
-	if safe == fullscreen.safe {
-		return
-	}
-	if !fullscreen.active {
-		fullscreen.safe = safe
-		return
-	}
-	setFullscreen(hwnd, false)
-	fullscreen.safe = safe
-	setFullscreen(hwnd, true)
-}
-
-// watchFullscreenFocus keeps a flicker-safe fullscreen window above the taskbar while it is the
-// active window, and lets other windows come in front when the user switches to them.
-func watchFullscreenFocus(w interface{ Dispatch(func()) }, hwnd uintptr) {
-	for range time.Tick(300 * time.Millisecond) {
-		w.Dispatch(func() {
-			if !fullscreen.active || !fullscreen.safe {
-				return
-			}
-			fg, _, _ := procGetForegroundWindow.Call()
-			if want := fg == hwnd; want != fullscreen.topmost {
-				after := hwndNoTopmost
-				if want {
-					after = hwndTopmost
-				}
-				const swpNoSize, swpNoMove = 0x0001, 0x0002
-				procSetWindowPos.Call(hwnd, after, 0, 0, 0, 0, swpNoMove|swpNoSize|swpNoActivate)
-				fullscreen.topmost = want
-			}
-		})
-	}
 }
 
 func setFullscreen(hwnd uintptr, on bool) {
@@ -135,17 +82,8 @@ func setFullscreen(hwnd uintptr, on bool) {
 		fullscreen.style = style
 		procSetWindowLongPtrW.Call(hwnd, gwlStyle, style&^wsOverlappedWindow)
 		r := mi.RcMonitor
-		after, height := uintptr(hwndTop), r.Bottom-r.Top
-		if fullscreen.safe {
-			after, height = hwndTopmost, height-1
-		}
-		procSetWindowPos.Call(hwnd, after, uintptr(r.Left), uintptr(r.Top), uintptr(r.Right-r.Left), uintptr(height), swpNoOwnerZOrder|swpFrameChanged)
-		fullscreen.topmost = fullscreen.safe
+		procSetWindowPos.Call(hwnd, hwndTop, uintptr(r.Left), uintptr(r.Top), uintptr(r.Right-r.Left), uintptr(r.Bottom-r.Top), swpNoOwnerZOrder|swpFrameChanged)
 	} else {
-		if fullscreen.topmost {
-			procSetWindowPos.Call(hwnd, hwndNoTopmost, 0, 0, 0, 0, swpNoMove|swpNoSize|swpNoActivate)
-			fullscreen.topmost = false
-		}
 		procSetWindowLongPtrW.Call(hwnd, gwlStyle, fullscreen.style)
 		procSetWindowPlacement.Call(hwnd, uintptr(unsafe.Pointer(&fullscreen.placement)))
 		procSetWindowPos.Call(hwnd, 0, 0, 0, 0, 0, swpNoMove|swpNoSize|swpNoZOrder|swpNoOwnerZOrder|swpFrameChanged)

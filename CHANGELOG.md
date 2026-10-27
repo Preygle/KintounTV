@@ -3,6 +3,14 @@
 All notable changes to KintounTV. Versions follow [Semantic Versioning](https://semver.org);
 `npm run release` publishes the section matching the version in `package.json`.
 
+## 1.5.3 — 2026-10-27
+
+- **Screen changes from 1.5.0 undone** (they made fullscreen flicker worse on some monitors):
+  fullscreen works exactly as in 1.4.7 again, and the app fullscreen button / F11, flicker-safe
+  mode, remembered window position, WebView zoom/shortcut/status-bar changes, back/forward mouse
+  buttons and the wide-screen layout are gone. Media keys, 5-second skips and the A / D speed keys
+  stay.
+
 ## 1.5.2 — 2026-10-26
 
 - **Speed keys:** A and D make playback slower or faster in 0.1× steps (0.5× to 3×); the new speed

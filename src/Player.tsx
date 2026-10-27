@@ -17,8 +17,13 @@ import {
 import { getPlayerPrefs, setPlayerPrefs, usePlayerPrefs } from "./progress";
 import { fetchSkips, SKIP_LABEL, type SkipLookup, type SkipSegment } from "./skips";
 import { usePreview } from "./trickplay";
-import { syncWindowFullscreen } from "./desktop";
 
+declare global {
+  interface Window {
+    // Provided by the desktop app: turns the window itself borderless/fullscreen.
+    kintounSetFullscreen?: (on: boolean) => Promise<void>;
+  }
+}
 
 interface PlayerProps {
   // null while the next stream is being looked up: the player (and fullscreen) stays mounted.
@@ -313,7 +318,6 @@ export default function Player({ src, overlay, skip, startAt = 0, title, subtitl
     video.muted = video.volume === 0;
   }, []);
 
-  // The app itself may be fullscreen (desktop/F11): only the player's own fullscreen is toggled here.
   // A / D: playback speed in steps of 0.1 (shown briefly, remembered like the menu's choice).
   const nudgeSpeed = useCallback((delta: number) => {
     const video = videoRef.current;
@@ -326,7 +330,7 @@ export default function Player({ src, overlay, skip, startAt = 0, title, subtitl
   }, []);
 
   const toggleFullscreen = useCallback(() => {
-    if (document.fullscreenElement === rootRef.current) document.exitFullscreen().catch(() => {});
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     else rootRef.current?.requestFullscreen().catch(() => {});
   }, []);
 
@@ -335,13 +339,13 @@ export default function Player({ src, overlay, skip, startAt = 0, title, subtitl
     const sync = () => {
       const on = document.fullscreenElement === rootRef.current;
       setFullscreen(on);
-      syncWindowFullscreen();
+      window.kintounSetFullscreen?.(document.fullscreenElement != null).catch(() => {});
     };
     document.addEventListener("fullscreenchange", sync);
     return () => {
       document.removeEventListener("fullscreenchange", sync);
       if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-      window.setTimeout(syncWindowFullscreen, 0); // after the exit above has taken effect
+      window.kintounSetFullscreen?.(false).catch(() => {});
     };
   }, []);
 

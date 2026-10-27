@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { PageHeader } from "../components";
 import { sendPasswordReset, setFastSync, signIn, signOut, syncConfigured, syncNow, useSync } from "../sync";
-import { isDesktopApp, setFlickerSafe, useDesktop } from "../desktop";
 import { APP_VERSION, checkForUpdate, installLabel, installUpdate, isNewer, RELEASES_PAGE, useUpdates } from "../updates";
 
 function ago(t?: number) {
@@ -101,7 +100,6 @@ function SignInForm() {
 /** The installed version, update check and in-app update. */
 function AppCard() {
   const u = useUpdates();
-  const desktop = useDesktop();
   const newer = isNewer(u.latest) ? u.latest : null;
   const busy = installLabel(u.install);
   // The release notes' first lines (Markdown bullets), shown as plain text.
@@ -142,15 +140,6 @@ function AppCard() {
           {u.checking ? "Checking…" : "Check for updates"}
         </button>
       </div>
-      {isDesktopApp && (
-        <label className="sync-option">
-          <input type="checkbox" checked={desktop.flickerSafe} onChange={(e) => setFlickerSafe(e.target.checked)} />
-          <span>
-            <strong>Flicker-safe fullscreen</strong>
-            Keeps fullscreen from switching variable-refresh (FreeSync / G-Sync) monitors into game mode, which makes some of them flicker. Leaves a one-pixel line at the bottom of the screen. Turn off for an exact fullscreen.
-          </span>
-        </label>
-      )}
       {u.installable && (
         <p className="account-note">
           {u.install.platform === "android"
