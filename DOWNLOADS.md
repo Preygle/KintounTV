@@ -15,6 +15,7 @@ by the [Download stats workflow](https://github.com/Preygle/KintounTV/actions/wo
 
 | Release | Published | Windows | Android | Total |
 | --- | --- | ---: | ---: | ---: |
+| [v1.5.3](https://github.com/Preygle/KintounTV/releases/tag/v1.5.3) | 2026-10-27 | 0 | 0 | 0 |
 | [v1.5.2](https://github.com/Preygle/KintounTV/releases/tag/v1.5.2) | 2026-10-25 | 1 | 5 | 6 |
 | [v1.5.0](https://github.com/Preygle/KintounTV/releases/tag/v1.5.0) | 2026-10-25 | 1 | 0 | 1 |
 | [v1.4.7](https://github.com/Preygle/KintounTV/releases/tag/v1.4.7) | 2026-10-25 | 0 | 0 | 0 |
