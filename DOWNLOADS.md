@@ -1,21 +1,21 @@
 # Download stats
 
 Download counts for every [KintounTV release](https://github.com/Preygle/KintounTV/releases), recorded every 6 hours
-by the [Download stats workflow](https://github.com/Preygle/KintounTV/actions/workflows/download-stats.yml). As of 2026-11-02.
+by the [Download stats workflow](https://github.com/Preygle/KintounTV/actions/workflows/download-stats.yml). As of 2026-11-03.
 
 ## Totals
 
 | Platform | Downloads |
 | --- | ---: |
 | Windows | 7 |
-| Android | 28 |
-| **All** | **35** |
+| Android | 29 |
+| **All** | **36** |
 
 ## By release
 
 | Release | Published | Windows | Android | Total |
 | --- | --- | ---: | ---: | ---: |
-| [v1.5.4](https://github.com/Preygle/KintounTV/releases/tag/v1.5.4) | 2026-10-27 | 1 | 2 | 3 |
+| [v1.5.4](https://github.com/Preygle/KintounTV/releases/tag/v1.5.4) | 2026-10-27 | 1 | 3 | 4 |
 | [v1.5.3](https://github.com/Preygle/KintounTV/releases/tag/v1.5.3) | 2026-10-27 | 0 | 0 | 0 |
 | [v1.5.2](https://github.com/Preygle/KintounTV/releases/tag/v1.5.2) | 2026-10-25 | 1 | 6 | 7 |
 | [v1.5.0](https://github.com/Preygle/KintounTV/releases/tag/v1.5.0) | 2026-10-25 | 1 | 0 | 1 |
@@ -38,6 +38,7 @@ by the [Download stats workflow](https://github.com/Preygle/KintounTV/actions/wo
 
 | Date | Windows | Android | Total |
 | --- | ---: | ---: | ---: |
+| 2026-11-03 | 7 | 29 | 36 |
 | 2026-11-02 | 7 | 28 | 35 |
 | 2026-11-01 | 7 | 28 | 35 |
 | 2026-10-31 | 7 | 28 | 35 |
