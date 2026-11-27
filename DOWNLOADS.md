@@ -8,14 +8,14 @@ by the [Download stats workflow](https://github.com/Preygle/KintounTV/actions/wo
 | Platform | Downloads |
 | --- | ---: |
 | Windows | 7 |
-| Android | 30 |
-| **All** | **37** |
+| Android | 31 |
+| **All** | **38** |
 
 ## By release
 
 | Release | Published | Windows | Android | Total |
 | --- | --- | ---: | ---: | ---: |
-| [v1.5.4](https://github.com/Preygle/KintounTV/releases/tag/v1.5.4) | 2026-10-27 | 1 | 4 | 5 |
+| [v1.5.4](https://github.com/Preygle/KintounTV/releases/tag/v1.5.4) | 2026-10-27 | 1 | 5 | 6 |
 | [v1.5.3](https://github.com/Preygle/KintounTV/releases/tag/v1.5.3) | 2026-10-27 | 0 | 0 | 0 |
 | [v1.5.2](https://github.com/Preygle/KintounTV/releases/tag/v1.5.2) | 2026-10-25 | 1 | 6 | 7 |
 | [v1.5.0](https://github.com/Preygle/KintounTV/releases/tag/v1.5.0) | 2026-10-25 | 1 | 0 | 1 |
@@ -38,7 +38,7 @@ by the [Download stats workflow](https://github.com/Preygle/KintounTV/actions/wo
 
 | Date | Windows | Android | Total |
 | --- | ---: | ---: | ---: |
-| 2026-11-27 | 7 | 30 | 37 |
+| 2026-11-27 | 7 | 31 | 38 |
 | 2026-11-26 | 7 | 30 | 37 |
 | 2026-11-25 | 7 | 30 | 37 |
 | 2026-11-24 | 7 | 30 | 37 |
